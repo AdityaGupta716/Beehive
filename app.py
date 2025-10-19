@@ -48,7 +48,7 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, resources={
     r"/*": {
         "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True,
@@ -151,7 +151,7 @@ def generate_pdf_thumbnail(pdf_path, filename):
     return thumbnail_path
 
 # Edit images uploaded by the user
-@app.route('/edit/<image_id>', methods=['POST'])
+@app.route('/edit/<image_id>', methods=['PATCH'])
 @require_auth
 def edit_image(image_id):
     try:
@@ -185,7 +185,7 @@ def serve_audio(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
    
 # Delete images uploaded by the user
-@app.route('/delete/<image_id>')
+@app.route('/delete/<image_id>', methods=['DELETE'])
 @require_auth
 def delete_image_route(image_id):
     try:
@@ -267,8 +267,8 @@ def get_admin_notifications():
 def send_chat_message():
     try:
         data = request.json
-        from_id = data.get('from_id')
-        from_role = data.get('from_role')
+        from_id = request.current_user['id']
+        from_role = request.current_user['role']
         to_id = data.get('to_id')
         to_role = data.get('to_role')
         content = data.get('content')
@@ -293,10 +293,17 @@ def send_chat_message():
 @require_auth
 def get_chat_messages():
     try:
-        user_id = request.args.get('user_id')
-        with_admin = request.args.get('with_admin', 'false').lower() == 'true'
-        if not user_id:
-            return jsonify({'error': 'user_id is required'}), 400
+        current_user = request.current_user
+        
+        if current_user.get('role') == 'admin':
+            # If the requester is an admin, they can specify a user_id
+            user_id = request.args.get('user_id')
+            if not user_id:
+                return jsonify({'error': 'user_id is required'}), 400
+        else:
+            # We'll be ignoring any user_id passed in the query to prevent data leakage.
+            user_id = current_user['id']
+
         messages_col = get_beehive_message_collection()
         # Get messages between this user and admin
         query = {
