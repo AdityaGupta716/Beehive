@@ -215,7 +215,7 @@ def get_all_users():
 
 def get_uploads_analytics_summary():
     try:
-        # --- Calculate Date Ranges (UTC) ---
+        # Calculate date ranges (UTC)
         today = datetime.utcnow()
         start_of_this_month = today.replace(
             day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -223,7 +223,7 @@ def get_uploads_analytics_summary():
         start_of_last_month = end_of_last_month.replace(
             day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        # --- MongoDB Aggregation Pipeline ---
+        # Mongodb aggregation pipeline
         pipeline = [
             {
                 '$facet': {
@@ -256,13 +256,13 @@ def get_uploads_analytics_summary():
 
         data = result[0]
 
-        # --- Monthly Counts ---
+        # Monthly counts
         this_month_count = data['this_month_uploads'][0]['count'] if data.get(
             'this_month_uploads') else 0
         last_month_count = data['last_month_uploads'][0]['count'] if data.get(
             'last_month_uploads') else 0
 
-        # --- Percentage Increase ---
+        # Percentage increase
         increase_percentage = 0.0
         if last_month_count > 0:
             increase_percentage = round(
@@ -270,7 +270,7 @@ def get_uploads_analytics_summary():
         elif this_month_count > 0:
             increase_percentage = 100.0
 
-        # --- Process File and Sentiment Counts ---
+        # Process file and sentiment counts
         sentiment_counts = {item['_id']: item['count']
                             for item in data.get('sentiments', []) if item['_id']}
         file_counts = {item['_id']: item['count']
@@ -281,7 +281,7 @@ def get_uploads_analytics_summary():
         voice_notes_count = data['voice_notes'][0]['count'] if data.get(
             'voice_notes') else 0
 
-        # --- Final Summary ---
+        # Final summary
         known_sentiments = {'positive', 'negative', 'neutral'}
         custom_count = sum(
             count for sentiment, count in sentiment_counts.items()
@@ -293,7 +293,6 @@ def get_uploads_analytics_summary():
             'breakdown': {
                 'images': image_count,
                 'documents': document_count,
-                'others': total_uploads - (image_count + document_count)
             },
             'voiceNotes': voice_notes_count,
             'increase': increase_percentage,
@@ -310,105 +309,13 @@ def get_uploads_analytics_summary():
         print(f"Error getting analytics summary: {e}")
         return None
 
-def get_user_analytics_summary():
-    try:
-        clerk_api_key = os.getenv('CLERK_SECRET_KEY')
-        if not clerk_api_key:
-            raise ValueError("CLERK_SECRET_KEY environment variable not set.")
-
-        headers = {'Authorization': f'Bearer {clerk_api_key}'}
-        base_url = 'https://api.clerk.com/v1/users'
-
-        # --- Only fetch users created or active within last 60 days ---
-        today = datetime.now(timezone.utc)
-        date_60_days_ago = today - timedelta(days=60)
-        created_after_ms = int(date_60_days_ago.timestamp() * 1000)
-
-        # --- Paginated Fetch ---
-        all_users = []
-        limit, offset = 200, 0
-
-        while True:
-            params = {
-                'limit': limit,
-                'offset': offset,
-                'order_by': '-created_at',          # newest first
-                'created_at_after': created_after_ms
-            }
-
-            response = requests.get(base_url, headers=headers, params=params)
-            response.raise_for_status()
-            users_page = response.json()
-
-            if not users_page:
-                break
-
-            all_users.extend(users_page)
-            offset += limit
-
-            # Stop if oldest user in this batch is older than 60 days
-            oldest_user = users_page[-1]
-            if oldest_user.get('created_at', 0) < created_after_ms:
-                break
-
-        # --- Date Ranges ---
-        start_of_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        end_of_last_month = start_of_this_month
-        start_of_last_month = (end_of_last_month.replace(day=1) - timedelta(days=1)).replace(day=1)
-        active_threshold = today - timedelta(days=30)
-
-        # --- Metrics ---
-        total_users = len(all_users)
-        active_users_total = new_users_this_month = new_users_last_month = 0
-        active_users_this_month = active_users_last_month = 0
-
-        for user in all_users:
-            created_at = datetime.fromtimestamp(user.get('created_at', 0) / 1000, tz=timezone.utc)
-            last_sign_in_at = datetime.fromtimestamp(user.get('last_sign_in_at', 0) / 1000, tz=timezone.utc)
-
-            if start_of_this_month <= created_at:
-                new_users_this_month += 1
-            elif start_of_last_month <= created_at < start_of_this_month:
-                new_users_last_month += 1
-
-            if last_sign_in_at >= active_threshold:
-                active_users_total += 1
-            if start_of_this_month <= last_sign_in_at:
-                active_users_this_month += 1
-            elif start_of_last_month <= last_sign_in_at < start_of_this_month:
-                active_users_last_month += 1
-
-        # --- Percentage Increases ---
-        total_users_increase = (
-            round(((new_users_this_month - new_users_last_month) / new_users_last_month) * 100, 2)
-            if new_users_last_month > 0 else (100.0 if new_users_this_month > 0 else 0.0)
-        )
-        active_users_increase = (
-            round(((active_users_this_month - active_users_last_month) / active_users_last_month) * 100, 2)
-            if active_users_last_month > 0 else (100.0 if active_users_this_month > 0 else 0.0)
-        )
-
-        return {
-            'users': {'total': total_users, 'increase': total_users_increase},
-            'activeUsers': {'total': active_users_total, 'increase': active_users_increase},
-            'timeframe': 'This month'
-        }
-
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching data from Clerk API: {e}")
-        return None
-    except Exception as e:
-        print(f"An error occurred in user analytics: {e}")
-        return None
-
-
 def get_daily_upload_trend(days_ago=7):
     try:
         today_utc = datetime.utcnow().replace(tzinfo=timezone.utc, hour=0,
                                               minute=0, second=0, microsecond=0)
         start_date_utc = today_utc - timedelta(days=days_ago - 1)
 
-        # --- Aggregate Daily Uploads ---
+        # Aggregate daily uploads
         pipeline = [
             {'$match': {'created_at': {'$gte': start_date_utc}}},
             {'$group': {'_id': {'$dateToString': {'format': '%Y-%m-%d', 'date': '$created_at', 'timezone': 'UTC'}},
@@ -421,7 +328,7 @@ def get_daily_upload_trend(days_ago=7):
         prev_count = 0
         current_date = start_date_utc
 
-        # --- Generate Continuous Daily Data ---
+        # Generate continuous daily data
         while current_date <= today_utc:
             date_str = current_date.strftime('%Y-%m-%d')
             count = upload_map.get(date_str, 0)
@@ -443,45 +350,120 @@ def get_daily_upload_trend(days_ago=7):
         print(f"Error getting daily upload trend: {e}")
         return []
 
+# Helper function to fetch users from clerk with pagination
+def _fetch_clerk_users(params):
+    clerk_api_key = os.getenv('CLERK_SECRET_KEY')
+    if not clerk_api_key:
+        raise ValueError("CLERK_SECRET_KEY environment variable not set.")
 
-def get_daily_user_trend(days_ago=7):
+    headers = {'Authorization': f'Bearer {clerk_api_key}'}
+    base_url = 'https://api.clerk.com/v1/users'
+    all_users = []
+    limit, offset = 200, 0
+
+    while True:
+        paginated_params = params.copy()
+        paginated_params['limit'] = limit
+        paginated_params['offset'] = offset
+        
+        response = requests.get(base_url, headers=headers, params=paginated_params)
+        response.raise_for_status()
+        users_page = response.json()
+
+        if not users_page:
+            break
+
+        all_users.extend(users_page)
+        offset += limit
+    
+    return all_users
+
+def get_user_analytics_summary():
     try:
         clerk_api_key = os.getenv('CLERK_SECRET_KEY')
         if not clerk_api_key:
             raise ValueError("CLERK_SECRET_KEY environment variable not set.")
-
+        
         headers = {'Authorization': f'Bearer {clerk_api_key}'}
-        base_url = 'https://api.clerk.com/v1/users'
 
+        count_response = requests.get('https://api.clerk.com/v1/users/count', headers=headers)
+        count_response.raise_for_status()
+        overall_total_users = count_response.json().get('total_count', 0)
+
+        # Date setup
+        today = datetime.now(timezone.utc)
+        start_of_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start_of_last_month = (start_of_this_month - timedelta(days=1)).replace(day=1)
+        active_threshold_30_days = today - timedelta(days=30)
+        
+        start_date_ms = int(start_of_last_month.timestamp() * 1000)
+
+        # Fetch recent user data
+        recently_created_users = _fetch_clerk_users({'created_at_after': start_date_ms})
+        recently_active_users = _fetch_clerk_users({'last_sign_in_at_after': start_date_ms})
+
+        new_users_this_month = 0
+        new_users_last_month = 0
+        active_users_total = 0 # Active in last 30 days
+        active_users_this_month = 0
+        active_users_last_month = 0
+
+        # Process new user data for the increase percentage
+        for user in recently_created_users:
+            created_at = datetime.fromtimestamp(user.get('created_at', 0) / 1000, tz=timezone.utc)
+            if start_of_this_month <= created_at:
+                new_users_this_month += 1
+            elif start_of_last_month <= created_at < start_of_this_month:
+                new_users_last_month += 1
+        
+        # Process active user data
+        for user in recently_active_users:
+            if user.get('last_sign_in_at'):
+                last_sign_in_at = datetime.fromtimestamp(user.get('last_sign_in_at') / 1000, tz=timezone.utc)
+                if last_sign_in_at >= active_threshold_30_days:
+                    active_users_total += 1
+                if start_of_this_month <= last_sign_in_at:
+                    active_users_this_month += 1
+                elif start_of_last_month <= last_sign_in_at < start_of_this_month:
+                    active_users_last_month += 1
+
+        # Note: 'total_users_increase' is based on NEW users this month vs. last month.
+        total_users_increase = (
+            round(((new_users_this_month - new_users_last_month) / new_users_last_month) * 100, 2)
+            if new_users_last_month > 0 else (100.0 if new_users_this_month > 0 else 0.0)
+        )
+        active_users_increase = (
+            round(((active_users_this_month - active_users_last_month) / active_users_last_month) * 100, 2)
+            if active_users_last_month > 0 else (100.0 if active_users_this_month > 0 else 0.0)
+        )
+
+        return {
+            'users': {'total': overall_total_users, 'increase': total_users_increase},
+            'activeUsers': {'total': active_users_total, 'increase': active_users_increase},
+            'timeframe': 'This month'
+        }
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data from Clerk API: {e}")
+        return None
+    except Exception as e:
+        print(f"An error occurred in user analytics: {e}")
+        return None 
+
+def get_daily_user_trend(days_ago=7):
+    try:
+        # Date Setup
         today_utc = datetime.utcnow().replace(tzinfo=timezone.utc, hour=0, minute=0, second=0, microsecond=0)
         start_date_utc = today_utc - timedelta(days=days_ago - 1)
-        created_after_ms = int(start_date_utc.timestamp() * 1000)
+        start_date_ms = int(start_date_utc.timestamp() * 1000)
 
-        # --- Paginated Fetch (only recent users) ---
-        all_users = []
-        limit, offset = 200, 0
-        while True:
-            params = {
-                'limit': limit,
-                'offset': offset,
-                'order_by': '-created_at',
-                'created_at_after': created_after_ms
-            }
-            response = requests.get(base_url, headers=headers, params=params)
-            response.raise_for_status()
-            users_page = response.json()
-            if not users_page:
-                break
+        # Get users created within the date range
+        recently_created_users = _fetch_clerk_users({'created_at_after': start_date_ms})
+        
+        # Get users active within the date range
+        recently_active_users = _fetch_clerk_users({'last_sign_in_at_after': start_date_ms})
 
-            all_users.extend(users_page)
-            offset += limit
-
-            # Stop if oldest user in this batch is older than given days
-            oldest_user = users_page[-1]
-            if oldest_user.get('created_at', 0) < created_after_ms:
-                break
-
-        # --- Prepare Date Scaffold ---
+        # Make list of all dates
         new_users_map = {}
         active_users_map = {}
         current_date = start_date_utc
@@ -491,17 +473,19 @@ def get_daily_user_trend(days_ago=7):
             active_users_map[date_str] = 0
             current_date += timedelta(days=1)
 
-        # --- Populate Counts ---
-        for user in all_users:
+        # Populate counts from correct lists
+        for user in recently_created_users:
             created_at_str = datetime.fromtimestamp(user.get('created_at', 0) / 1000, tz=timezone.utc).strftime('%Y-%m-%d')
-            last_sign_in_str = datetime.fromtimestamp(user.get('last_sign_in_at', 0) / 1000, tz=timezone.utc).strftime('%Y-%m-%d')
-
             if created_at_str in new_users_map:
                 new_users_map[created_at_str] += 1
-            if last_sign_in_str in active_users_map:
-                active_users_map[last_sign_in_str] += 1
+        
+        for user in recently_active_users:
+            if user.get('last_sign_in_at'):
+                last_sign_in_str = datetime.fromtimestamp(user.get('last_sign_in_at') / 1000, tz=timezone.utc).strftime('%Y-%m-%d')
+                if last_sign_in_str in active_users_map:
+                    active_users_map[last_sign_in_str] += 1
 
-        # --- Compute Trends ---
+        # Compute trends
         final_trend, prev_new, prev_active = [], 0, 0
         for date_str in sorted(new_users_map.keys()):
             new_count = new_users_map[date_str]
@@ -515,7 +499,6 @@ def get_daily_user_trend(days_ago=7):
                 'users': {'total': new_count, 'increase': new_increase},
                 'activeUsers': {'total': active_count, 'increase': active_increase},
             })
-
             prev_new, prev_active = new_count, active_count
 
         return final_trend

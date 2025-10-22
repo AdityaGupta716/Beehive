@@ -19,7 +19,7 @@ import {
 // const mockAnalytics = {
 //   uploadStats: {
 //     total: 675,
-//     breakdown: { images: 450, documents: 0, others: 0 },
+//     breakdown: { images: 450, documents: 0},
 //     voiceNotes: 225,
 //     increase: 12.5,
 //     timeframe: "This month",
@@ -41,7 +41,7 @@ const COLORS = ["#10B981", "#6B7280", "#EF4444", "#FBBF24", "#6366F1"]; // green
 interface AnalyticsData {
   uploadStats: {
     total: number;
-    breakdown: { images: number; documents: number; others: number };
+    breakdown: { images: number; documents: number; };
     voiceNotes: number;
     increase: number;
     timeframe: string;
@@ -107,7 +107,7 @@ const Analytics = () => {
 
       const token = await window.Clerk.session?.getToken();
 
-      const response = await fetch("http://127.0.0.1:5000/api/admin/analytics", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000'}/api/admin/analytics`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -131,14 +131,17 @@ const Analytics = () => {
     fetchDashboardData();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (loading) return (
+    <div className="flex justify-center items-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
+    </div>
+  );
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
   if (!analytics) return null;
 
   // Pie chart data
   const fileDistributionData = [
     { name: "Images", value: analytics.uploadStats.breakdown.images },
-    { name: "Others", value: analytics.uploadStats.breakdown.others },
     { name: "Documents", value: analytics.uploadStats.breakdown.documents },
   ];
 
@@ -195,7 +198,7 @@ const Analytics = () => {
                   <PieChart>
                     <Pie data={fileDistributionData} dataKey="value" nameKey="name" outerRadius={80} label>
                       {fileDistributionData.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={index} fill={COLORS[index]} />
                       ))}
                     </Pie>
                     <Tooltip />

@@ -103,8 +103,6 @@ def upload_images(user_id):
                     filetype = 'image'
                 elif file_ext in DOCUMENT_EXTENSIONS:
                     filetype = 'document'
-                else:
-                    filetype = 'other'
 
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
