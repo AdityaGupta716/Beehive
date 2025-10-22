@@ -247,11 +247,20 @@ def get_uploads_analytics_summary():
         result = list(beehive_image_collection.aggregate(pipeline))
         if not result or not result[0]['total_uploads']:
             return {
-                'total_uploads': 0,
-                'monthly_increase_percentage': 0,
-                'content_distribution': {'image': 0, 'document': 0, 'other': 0},
-                'sentiments': {'positive': 0, 'negative': 0, 'neutral': 0},
-                'voice_notes': 0
+                'total': 0,
+                'breakdown': {
+                    'images': 0,
+                    'documents': 0,
+                },
+                'voice_notes': 0,
+                'increase': 0,
+                'timeframe': 'This month',
+                'sentimentAnalysis': {
+                    'positive': 0,
+                    'negative': 0,
+                    'neutral': 0,
+                    'custom': 0
+                }
             }
 
         data = result[0]
