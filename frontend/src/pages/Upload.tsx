@@ -223,6 +223,7 @@ const Upload = () => {
       
       // Add audio data if available
       if (selectedVoiceNote) {
+        const formData = new FormData();
         formData.append('audio', selectedVoiceNote);
       }
       // Make the upload request
