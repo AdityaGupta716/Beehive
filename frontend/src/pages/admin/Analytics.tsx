@@ -171,11 +171,14 @@ const Analytics = () => {
   const uploadTrendMap = new Map(
     analytics.uploads.trend.map(item => [item.date, item.uploads])
   );
-  
+
   const combinedTrends = analytics.users.trend.map(userTrend => ({
     ...userTrend,
     uploads: uploadTrendMap.get(userTrend.date) || { total: 0, increase: 0 }
   }));
+
+  const isAllZero = (data: { name: string; value: number }[]) =>
+    data.every(item => item.value === 0);
 
   return (
     <div className="py-8">
@@ -207,29 +210,93 @@ const Analytics = () => {
           />
         </div>
 
-        {/* Content Distribution and Sentiment Analysis */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Content Distribution */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
             <h2 className="text-xl font-semibold mb-4">Content Distribution</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px] md:h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={fileDistributionData} dataKey="value" nameKey="name" outerRadius={80} label>{fileDistributionData.map((_, index) => (<Cell key={index} fill={COLORS[index]} />))}</Pie><Tooltip /><Legend /></PieChart>
-                </ResponsiveContainer>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={voiceNoteDistributionData} dataKey="value" nameKey="name" outerRadius={80} label>{voiceNoteDistributionData.map((_, index) => (<Cell key={index} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip /><Legend /></PieChart>
-                </ResponsiveContainer>
+
+              {/* File Distribution */}
+              <div className="h-full flex items-center justify-center">
+                {isAllZero(fileDistributionData) ? (
+                  <span className="text-gray-400 font-medium">No data available</span>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={fileDistributionData}
+                        dataKey="value"
+                        nameKey="name"
+                        outerRadius={80}
+                        label
+                      >
+                        {fileDistributionData.map((_, index) => (
+                          <Cell key={index} fill={COLORS[index]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Voice Note Distribution */}
+              <div className="h-full flex items-center justify-center">
+                {isAllZero(voiceNoteDistributionData) ? (
+                  <span className="text-gray-400 font-medium">No data available</span>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={voiceNoteDistributionData}
+                        dataKey="value"
+                        nameKey="name"
+                        outerRadius={80}
+                        label
+                      >
+                        {voiceNoteDistributionData.map((_, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Sentiment Analysis */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
             <h2 className="text-xl font-semibold mb-4">Sentiment Analysis</h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart><Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={100} label>{sentimentData.map((_, index) => (<Cell key={index} fill={COLORS[index]} />))}</Pie><Tooltip /><Legend /></PieChart>
-              </ResponsiveContainer>
+            <div className="h-80 flex items-center justify-center">
+              {isAllZero(sentimentData) ? (
+                <span className="text-gray-400 font-medium">No data available</span>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={sentimentData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={100}
+                      label
+                    >
+                      {sentimentData.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
-        
+
         {/* Recent Trends */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
           <h2 className="text-xl font-semibold mb-4">Recent Trends (Last Week)</h2>
