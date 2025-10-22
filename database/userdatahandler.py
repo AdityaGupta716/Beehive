@@ -293,17 +293,24 @@ def get_upload_analytics(trend_days=7):
         return None
 
 def _fetch_clerk_users(params):
-    # This is your helper function from the original code
     headers = {'Authorization': f'Bearer {os.getenv("CLERK_SECRET_KEY")}'}
-    all_users, limit, offset = [], 200, 0
-    while True:
-        paginated_params = {**params, 'limit': limit, 'offset': offset}
-        response = requests.get('https://api.clerk.com/v1/users', headers=headers, params=paginated_params)
-        response.raise_for_status()
-        users_page = response.json()
-        if not users_page: break
-        all_users.extend(users_page)
-        offset += limit
+    all_users = []
+    limit, offset = 200, 0
+
+    # Use a session for connection reuse
+    with requests.Session() as session:
+        session.headers.update(headers)
+        
+        while True:
+            paginated_params = {**params, 'limit': limit, 'offset': offset}
+            response = session.get('https://api.clerk.com/v1/users', params=paginated_params)
+            response.raise_for_status()
+            users_page = response.json()
+            if not users_page:
+                break
+            all_users.extend(users_page)
+            offset += limit
+
     return all_users
 
 def get_user_analytics(trend_days=7):
