@@ -122,7 +122,6 @@ def upload_images(user_id):
 
                 # Always safe to call now
                 time_created = datetime.datetime.now()
-                print(user_id, filename, title, description, time_created, audio_filename, sentiment, "lulululu")
                 save_image(user_id, filename, title, description, time_created, audio_filename, sentiment)
                 save_notification(user_id, username, filename, title, time_created, sentiment)
 
