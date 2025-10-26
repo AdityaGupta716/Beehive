@@ -45,10 +45,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from oauth.config import ALLOWED_EMAILS, GOOGLE_CLIENT_ID
 
-IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heif'}
-DOCUMENT_EXTENSIONS = {'pdf'}
-
-ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | DOCUMENT_EXTENSIONS
+ALLOWED_EXTENSIONS =  {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heif', 'pdf'}
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, resources={
@@ -104,11 +101,6 @@ def upload_images(user_id):
                 if file_ext not in ALLOWED_EXTENSIONS:
                     return jsonify({'error': f'File type not allowed. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
 
-                if file_ext in IMAGE_EXTENSIONS:
-                    filetype = 'image'
-                elif file_ext in DOCUMENT_EXTENSIONS:
-                    filetype = 'document'
-
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
                 file.save(filepath)
@@ -130,7 +122,8 @@ def upload_images(user_id):
 
                 # Always safe to call now
                 time_created = datetime.datetime.now()
-                save_image(user_id, filename, filetype, title, description, time_created, audio_filename, sentiment)
+                print(user_id, filename, title, description, time_created, audio_filename, sentiment, "lulululu")
+                save_image(user_id, filename, title, description, time_created, audio_filename, sentiment)
                 save_notification(user_id, username, filename, title, time_created, sentiment)
 
                 # Generate PDF thumbnail if applicable

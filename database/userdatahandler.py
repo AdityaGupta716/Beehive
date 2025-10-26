@@ -19,11 +19,10 @@ def get_user_by_username(username: str):
 
 
 # Save image to MongoDB
-def save_image(id, filename, filetype, title, description, time_created, audio_filename=None, sentiment=None):
+def save_image(id, filename, title, description, time_created, audio_filename=None, sentiment=None):
     image = {
         'user_id': id,
         'filename': filename,
-        'filetype': filetype,
         'title': title,
         'description': description,
         'created_at': time_created,
@@ -259,12 +258,10 @@ def get_upload_analytics(trend_days=7):
             if last_month_count > 0 else (100.0 if this_month_count > 0 else 0.0)
         )
         sentiment_counts = {item['_id']: item['count'] for item in result.get('sentiments', []) if item.get('_id')}
-        file_counts = {item['_id']: item['count'] for item in result.get('content_types', []) if item.get('_id')}
         known_sentiments = {'positive', 'negative', 'neutral'}
         
         summary = {
             'total': result['total_uploads'][0]['count'] if result['total_uploads'] else 0,
-            'breakdown': {'images': file_counts.get('image', 0), 'documents': file_counts.get('document', 0)},
             'voiceNotes': result['voice_notes'][0]['count'] if result['voice_notes'] else 0,
             'increase': increase_perc,
             'timeframe': 'This month',

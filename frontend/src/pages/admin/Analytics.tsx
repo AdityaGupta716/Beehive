@@ -20,7 +20,6 @@ import {
 //   uploads: {
 //     summary: {
 //       total: 675,
-//       breakdown: { images: 450, documents: 0 },
 //       voiceNotes: 225,
 //       increase: 12.5,
 //       timeframe: "This month",
@@ -50,7 +49,6 @@ interface AnalyticsData {
   uploads: {
     summary: {
       total: number;
-      breakdown: { images: number; documents: number; };
       voiceNotes: number;
       increase: number;
       timeframe: string;
@@ -151,11 +149,6 @@ const Analytics = () => {
   const uploadSummary = analytics.uploads.summary;
   const userSummary = analytics.users.summary;
 
-  const fileDistributionData = [
-    { name: "Images", value: uploadSummary.breakdown.images },
-    { name: "Documents", value: uploadSummary.breakdown.documents },
-  ];
-
   const voiceNoteDistributionData = [
     { name: "Voice Notes", value: uploadSummary.voiceNotes },
     { name: "No Voice Notes", value: uploadSummary.total - uploadSummary.voiceNotes },
@@ -165,7 +158,7 @@ const Analytics = () => {
     { name: "Positive", value: uploadSummary.sentimentAnalysis.positive },
     { name: "Neutral", value: uploadSummary.sentimentAnalysis.neutral },
     { name: "Negative", value: uploadSummary.sentimentAnalysis.negative },
-    { name: "Others", value: uploadSummary.sentimentAnalysis.custom },
+    { name: "Custom", value: uploadSummary.sentimentAnalysis.custom },
   ];
 
   const uploadTrendMap = new Map(
@@ -214,59 +207,33 @@ const Analytics = () => {
           {/* Content Distribution */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
             <h2 className="text-xl font-semibold mb-4">Content Distribution</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px] md:h-72">
 
-              {/* File Distribution */}
-              <div className="h-full flex items-center justify-center">
-                {isAllZero(fileDistributionData) ? (
-                  <span className="text-gray-400 font-medium">No data available</span>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={fileDistributionData}
-                        dataKey="value"
-                        nameKey="name"
-                        outerRadius={80}
-                        label
-                      >
-                        {fileDistributionData.map((_, index) => (
-                          <Cell key={index} fill={COLORS[index]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-
-              {/* Voice Note Distribution */}
-              <div className="h-full flex items-center justify-center">
-                {isAllZero(voiceNoteDistributionData) ? (
-                  <span className="text-gray-400 font-medium">No data available</span>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={voiceNoteDistributionData}
-                        dataKey="value"
-                        nameKey="name"
-                        outerRadius={80}
-                        label
-                      >
-                        {voiceNoteDistributionData.map((_, index) => (
-                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
+            {/* Voice Note Distribution */}
+            <div className="h-80 flex items-center justify-center">
+              {isAllZero(voiceNoteDistributionData) ? (
+                <span className="text-gray-400 font-medium">No data available</span>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={voiceNoteDistributionData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={100}
+                      label
+                    >
+                      {voiceNoteDistributionData.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
+
 
           {/* Sentiment Analysis */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
