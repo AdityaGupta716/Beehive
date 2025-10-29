@@ -331,7 +331,7 @@ def delete_image_route(image_id):
 # Get all images uploaded by a user
 @app.route('/api/user/user_uploads')
 @require_auth
-def user_images_show(user_id):
+def user_images_show():
     try:
         user_id = request.current_user['id']
         images = get_images_by_user(user_id)
