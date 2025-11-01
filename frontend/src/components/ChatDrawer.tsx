@@ -120,7 +120,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black bg-opacity-40" onClick={onClose}></div>
+      <div className="fixed inset-0 bg-black/40" onClick={onClose}></div>
       {/* Drawer */}
       <div className="relative w-full sm:max-w-2xl bg-white h-full shadow-2xl flex flex-col sm:flex-row rounded-none sm:rounded-l-2xl border-l-0 sm:border-l-4 border-yellow-500">
         {/* Responsive: User List for Admin (stacked on top for mobile, left for desktop) */}
