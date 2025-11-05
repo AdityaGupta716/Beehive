@@ -46,17 +46,18 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from oauth.config import ALLOWED_EMAILS, GOOGLE_CLIENT_ID
 
-ALLOWED_EXTENSIONS =  {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heif', 'pdf'}
-# Allowed MIME types for file content validation
+ALLOWED_EXTENSIONS = {'jpg','jpeg','png','gif','webp','heif','pdf','avif'}
+
 ALLOWED_MIME_TYPES = {
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/heif',
-    'application/pdf',
-    'image/avif'
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'image/heif', 'application/pdf', 'image/avif'
 }
+
+# Initialized global MIME detector
+try:
+    MAGIC = magic.Magic(mime=True)
+except Exception:
+    MAGIC = None
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, resources={
