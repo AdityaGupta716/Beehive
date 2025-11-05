@@ -10,8 +10,8 @@
 If you prefer to run everything with Docker (backend, frontend, and MongoDB), use this option.
 
 1. Ensure you have Docker and Docker Compose v2 installed.
-2. Make sure required environment variables are set in a `.env` file at the project root (see step 9 below) and that `client_secret.json` exists in the project root (see step 7).
-   - Frontend also needs `VITE_CLERK_PUBLISHABLE_KEY` (see step 11).
+2. Make sure required environment variables are set in a `.env` file at the project root (see the "Update `.env` File" section below) and that `client_secret.json` exists in the project root (see the "Create Google OAuth API Key" section).
+   - Frontend also needs `VITE_CLERK_PUBLISHABLE_KEY` (see the "Configure the frontend" section).
 3. From the project root, run:
    ```bash
    docker compose up --build
