@@ -47,7 +47,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from oauth.config import ALLOWED_EMAILS, GOOGLE_CLIENT_ID
 
 ALLOWED_EXTENSIONS =  {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heif', 'pdf'}
-#THIS SET for MIME type validation
+# Allowed MIME types for file content validation
 ALLOWED_MIME_TYPES = {
     'image/jpeg',
     'image/png',
