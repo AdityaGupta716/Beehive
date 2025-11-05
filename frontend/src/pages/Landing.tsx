@@ -568,61 +568,7 @@ const Landing = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white p-8 rounded-xl shadow-lg"
-            >
-              <form className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border border-yellow-500 focus:ring-yellow-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border border-yellow-500 focus:ring-yellow-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    rows={4}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border border-yellow-500 focus:ring-yellow-500"
-                  ></textarea>
-                </div>
-                <motion.button
-                  type="submit"
-                  className="w-full bg-yellow-400 text-black px-8 py-3 rounded-full hover:bg-yellow-500 transition-all shadow-lg hover:shadow-xl"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Send Message
-                </motion.button>
-              </form>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-8"
-            >
+          <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
                 {
                   title: "Office Location",
@@ -646,18 +592,20 @@ const Landing = () => {
                 }
               ].map((item, index) => (
                 <motion.div
+                initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
                   key={index}
-                  className="flex items-start space-x-4"
+                  className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
                   whileHover={{ x: 5 }}
                 >
                   <div className="text-3xl">{item.icon}</div>
                   <div>
-                    <h3 className="text-lg font-semibold">{item.title}</h3>
+                    <h3 className="text-lg text-black font-semibold">{item.title}</h3>
                     <p className="text-gray-600">{item.description}</p>
                   </div>
                 </motion.div>
               ))}
-            </motion.div>
           </div>
         </div>
       </section>
