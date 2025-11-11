@@ -587,63 +587,7 @@ const Landing = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white dark:bg-gray-700 p-8 rounded-xl shadow-lg"
-            >
-              <form className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    placeholder="Enter your full name"
-                    className="mt-1 block w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm focus:border-yellow-500 focus:ring-yellow-500 focus:ring-1 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-200"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    placeholder="Enter your email address"
-                    className="mt-1 block w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm focus:border-yellow-500 focus:ring-yellow-500 focus:ring-1 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-200"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message" placeholder="Write your message here..."
-                    rows={4} className="mt-1 block w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm focus:border-yellow-500 focus:ring-yellow-500 focus:ring-1 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-200 resize-vertical"
-                    className="mt-1 block w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm focus:border-yellow-500 focus:ring-yellow-500 focus:ring-1 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-200"
-                  ></textarea>
-                </div>
-                <motion.button
-                  type="submit"
-                  className="w-full bg-yellow-400 text-black px-8 py-3 rounded-full hover:bg-yellow-500 transition-all shadow-lg hover:shadow-xl"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Send Message
-                </motion.button>
-              </form>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-8"
-            >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
                 {
                   title: "Office Location",
@@ -667,8 +611,11 @@ const Landing = () => {
                 }
               ].map((item, index) => (
                 <motion.div
+                initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
                   key={index}
-                  className="flex items-start space-x-4"
+                  className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
                   whileHover={{ x: 5 }}
                 >
                   <div className="text-3xl">{item.icon}</div>
@@ -678,7 +625,6 @@ const Landing = () => {
                   </div>
                 </motion.div>
               ))}
-            </motion.div>
           </div>
         </div>
       </section>
