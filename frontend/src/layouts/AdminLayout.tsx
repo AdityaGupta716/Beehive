@@ -269,7 +269,7 @@ const AdminLayout = () => {
                                   }`}
                               >
                                 <span className="font-medium">
-                                  Image uploaded by John
+                                  Image uploaded by {notif.username || 'a user'}
                                 </span>
                                 : {notif.title}
 
