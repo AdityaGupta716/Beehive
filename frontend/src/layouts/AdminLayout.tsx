@@ -64,7 +64,7 @@ const AdminLayout = () => {
       const data = await res.json();
       setUnseenCount(data.unseen_count);
     } catch (error) {
-      // console.error("Error fetching unseen notifications:", error);
+      console.error("Error fetching unseen notifications:", error);
     }
   };
 
