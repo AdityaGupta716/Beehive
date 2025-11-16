@@ -12,6 +12,7 @@ from flask import Flask, abort, render_template, request, redirect, url_for, fla
 from flask_cors import CORS
 from bson import ObjectId
 from google_auth_oauthlib.flow import Flow
+from bson.errors import InvalidId
 import requests
 from google.oauth2 import id_token
 import google.auth.transport.requests
@@ -379,8 +380,11 @@ def get_admin_notifications():
     try:
         notification_collection = get_beehive_notification_collection()
 
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("limit", 10))
+        try:
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("limit", 5))
+        except ValueError:
+            return jsonify({"error": "Invalid 'page' or 'limit' parameter. Must be an integer."}), 400
         skip = (page - 1) * per_page
 
         # Count unseen notifications
@@ -418,9 +422,10 @@ def mark_selected_notifications_seen():
         ids = data.get("ids", [])
         if not ids:
             return jsonify({"status": "no_ids"}), 200
-
-        from bson import ObjectId
-        object_ids = [ObjectId(_id) for _id in ids]
+        try:
+            object_ids = [ObjectId(_id) for _id in ids]
+        except InvalidId:
+            return jsonify({"error": "Invalid ID format"}), 400
 
         # Mark only these notifications seen
         notification_collection.update_many(

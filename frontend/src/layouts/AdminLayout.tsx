@@ -40,6 +40,7 @@ const AdminLayout = () => {
   // Pagination state
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const NOTIFICATION_PAGE_SIZE = 5;
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +57,7 @@ const AdminLayout = () => {
   const fetchUnseenNotifications = async () => {
     try {
       const token = await clerk.session?.getToken();
-      const res = await fetch("http://127.0.0.1:5000/api/admin/notifications?page=1&limit=5", {
+      const res = await fetch(`http://127.0.0.1:5000/api/admin/notifications?page=1&limit=${NOTIFICATION_PAGE_SIZE}`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
       });
@@ -75,7 +76,7 @@ const AdminLayout = () => {
 
       // Fetch without marking seen
       const res = await fetch(
-        "http://127.0.0.1:5000/api/admin/notifications?page=1&limit=5",
+        `http://127.0.0.1:5000/api/admin/notifications?page=1&limit=${NOTIFICATION_PAGE_SIZE}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           credentials: 'include',
@@ -87,7 +88,7 @@ const AdminLayout = () => {
 
       setNotifications(data.notifications);
       setPage(1);
-      setHasMore(data.notifications.length === 5);
+      setHasMore(data.notifications.length === NOTIFICATION_PAGE_SIZE);
 
       // Get only unseen IDs
       const unseenIds: string[] = data.notifications
@@ -121,7 +122,7 @@ const AdminLayout = () => {
       const token = await clerk.session?.getToken();
 
       const res = await fetch(
-        `http://127.0.0.1:5000/api/admin/notifications?page=${nextPage}&limit=5`,
+        `http://127.0.0.1:5000/api/admin/notifications?page=${nextPage}&limit=${NOTIFICATION_PAGE_SIZE}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           credentials: 'include',
@@ -138,7 +139,7 @@ const AdminLayout = () => {
       setNotifications(prev => [...prev, ...data.notifications]);
       setPage(nextPage);
 
-      if (data.notifications.length < 5) setHasMore(false);
+      if (data.notifications.length < NOTIFICATION_PAGE_SIZE) setHasMore(false);
     } catch (error) {
       // console.error("Error loading more notifications:", error);
     }
@@ -239,6 +240,7 @@ const AdminLayout = () => {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 relative"
+                    aria-label="Notifications"
                     onClick={handleBellClick}
                   >
                     <BellIcon className="h-4 w-4 sm:h-6 sm:w-6 text-gray-700 dark:text-gray-200" />
