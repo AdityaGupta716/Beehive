@@ -378,19 +378,58 @@ def user_images_show():
 def get_admin_notifications():
     try:
         notification_collection = get_beehive_notification_collection()
-        mark_seen = request.args.get('mark_seen', 'false').lower() == 'true'
-        # Get all unseen notifications
-        notifications = list(notification_collection.find({"seen": False}).sort("timestamp", -1))
-        # Mark them as seen if requested
-        if mark_seen and notifications:
-            notification_ids = [n['_id'] for n in notifications]
-            notification_collection.update_many({"_id": {"$in": notification_ids}}, {"$set": {"seen": True}})
-        # Convert ObjectId and datetime to string for JSON
+
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("limit", 10))
+        skip = (page - 1) * per_page
+
+        # Count unseen notifications
+        unseen_count = notification_collection.count_documents({"seen": False})
+
+        notifications = list(
+            notification_collection.find({})
+            .sort("timestamp", -1)
+            .skip(skip)
+            .limit(per_page)
+        )
+
         for n in notifications:
-            n['_id'] = str(n['_id'])
-            if 'timestamp' in n:
-                n['timestamp'] = n['timestamp'].isoformat()
-        return jsonify({"notifications": notifications}), 200
+            n["_id"] = str(n["_id"])
+            if "timestamp" in n:
+                n["timestamp"] = n["timestamp"].isoformat()
+
+        return jsonify({
+            "notifications": notifications,
+            "unseen_count": unseen_count,
+            "page": page
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/notifications/mark_seen', methods=['POST'])
+@require_auth
+def mark_selected_notifications_seen():
+    try:
+        notification_collection = get_beehive_notification_collection()
+        data = request.get_json()
+
+        ids = data.get("ids", [])
+        if not ids:
+            return jsonify({"status": "no_ids"}), 200
+
+        from bson import ObjectId
+        object_ids = [ObjectId(_id) for _id in ids]
+
+        # Mark only these notifications seen
+        notification_collection.update_many(
+            {"_id": {"$in": object_ids}},
+            {"$set": {"seen": True}}
+        )
+
+        return jsonify({"status": "ok"}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
