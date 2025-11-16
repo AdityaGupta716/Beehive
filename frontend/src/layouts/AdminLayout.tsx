@@ -65,7 +65,7 @@ const AdminLayout = () => {
       const data = await res.json();
       setUnseenCount(data.unseen_count);
     } catch (error) {
-      // console.error("Error fetching unseen notifications:", error);
+      console.error("Error fetching unseen notifications:", error);
     }
   };
 
@@ -271,7 +271,7 @@ const AdminLayout = () => {
                                   }`}
                               >
                                 <span className="font-medium">
-                                  Image uploaded by John
+                                  Image uploaded by {notif.username || 'a user'}
                                 </span>
                                 : {notif.title}
 
