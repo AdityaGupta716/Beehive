@@ -2,7 +2,6 @@ import base64
 import os
 from functools import wraps
 import json
-import os
 import datetime
 import pathlib
 import re
@@ -59,8 +58,8 @@ CORS(app, resources={
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 # SECURITY FIX: Use environment variable for secret key
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
-if not app.secret_key or app.secret_key in ['beehive', 'beehive-secret-key']:
-    raise ValueError('CRITICAL: Set secure FLASK_SECRET_KEY in environment!')
+if not app.secret_key or len(app.secret_key) < 32 or app.secret_key in {'beehive', 'beehive-secret-key'}:
+    raise ValueError('CRITICAL: Set a secure FLASK_SECRET_KEY (at least 32 characters) in the environment!')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['PDF_THUMBNAIL_FOLDER'] = 'static/uploads/thumbnails/'
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
