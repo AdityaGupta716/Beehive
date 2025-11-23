@@ -25,7 +25,7 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      'react/jsx-no-duplicate-props': 'error',
+      ...react.configs['jsx-runtime'].rules,
     },
     settings: {
       react: {
