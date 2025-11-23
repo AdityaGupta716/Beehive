@@ -1,4 +1,5 @@
 import base64
+import os
 from functools import wraps
 import json
 import os
@@ -56,7 +57,10 @@ CORS(app, resources={
     }
 })  # Enable CORS for all routes with specific configuration
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-app.secret_key = 'beehive'
+# SECURITY FIX: Use environment variable for secret key
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
+if not app.secret_key or app.secret_key in ['beehive', 'beehive-secret-key']:
+    raise ValueError('CRITICAL: Set secure FLASK_SECRET_KEY in environment!')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['PDF_THUMBNAIL_FOLDER'] = 'static/uploads/thumbnails/'
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
