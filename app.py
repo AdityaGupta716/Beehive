@@ -1,7 +1,7 @@
 import base64
+import os
 from functools import wraps
 import json
-import os
 import datetime
 import pathlib
 import re
@@ -12,6 +12,7 @@ from flask import Flask, abort, render_template, request, redirect, url_for, fla
 from flask_cors import CORS
 from bson import ObjectId
 from google_auth_oauthlib.flow import Flow
+from bson.errors import InvalidId
 import requests
 from google.oauth2 import id_token
 import google.auth.transport.requests
@@ -71,7 +72,10 @@ CORS(app, resources={
     }
 })  # Enable CORS for all routes with specific configuration
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-app.secret_key = 'beehive'
+# SECURITY FIX: Use environment variable for secret key
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
+if not app.secret_key or len(app.secret_key) < 32 or app.secret_key in {'beehive', 'beehive-secret-key'}:
+    raise ValueError('CRITICAL: Set a secure FLASK_SECRET_KEY (at least 32 characters) in the environment!')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['PDF_THUMBNAIL_FOLDER'] = 'static/uploads/thumbnails/'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -378,21 +382,64 @@ def user_images_show():
 def get_admin_notifications():
     try:
         notification_collection = get_beehive_notification_collection()
-        mark_seen = request.args.get('mark_seen', 'false').lower() == 'true'
-        # Get all unseen notifications
-        notifications = list(notification_collection.find({"seen": False}).sort("timestamp", -1))
-        # Mark them as seen if requested
-        if mark_seen and notifications:
-            notification_ids = [n['_id'] for n in notifications]
-            notification_collection.update_many({"_id": {"$in": notification_ids}}, {"$set": {"seen": True}})
-        # Convert ObjectId and datetime to string for JSON
+
+        try:
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("limit", 5))
+        except ValueError:
+            return jsonify({"error": "Invalid 'page' or 'limit' parameter. Must be an integer."}), 400
+        skip = (page - 1) * per_page
+
+        # Count unseen notifications
+        unseen_count = notification_collection.count_documents({"seen": False})
+
+        notifications = list(
+            notification_collection.find({})
+            .sort("timestamp", -1)
+            .skip(skip)
+            .limit(per_page)
+        )
+
         for n in notifications:
-            n['_id'] = str(n['_id'])
-            if 'timestamp' in n:
-                n['timestamp'] = n['timestamp'].isoformat()
-        return jsonify({"notifications": notifications}), 200
+            n["_id"] = str(n["_id"])
+            if "timestamp" in n:
+                n["timestamp"] = n["timestamp"].isoformat()
+
+        return jsonify({
+            "notifications": notifications,
+            "unseen_count": unseen_count,
+            "page": page
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/notifications/mark_seen', methods=['POST'])
+@require_auth
+def mark_selected_notifications_seen():
+    try:
+        notification_collection = get_beehive_notification_collection()
+        data = request.get_json()
+
+        ids = data.get("ids", [])
+        if not ids:
+            return jsonify({"status": "no_ids"}), 200
+        try:
+            object_ids = [ObjectId(_id) for _id in ids]
+        except InvalidId:
+            return jsonify({"error": "Invalid ID format"}), 400
+
+        # Mark only these notifications seen
+        notification_collection.update_many(
+            {"_id": {"$in": object_ids}},
+            {"$set": {"seen": True}}
+        )
+
+        return jsonify({"status": "ok"}), 200
+
+    except Exception as e:
+        return jsonify({"error": "An internal server error occurred."}), 500
 
 @app.route('/api/chat/send', methods=['POST'])
 @require_auth
