@@ -33,6 +33,7 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 REDIRECT_URI=http://localhost:5000/admin/login/callback
 ADMIN_EMAILS=admin1@example.com,admin2@example.com
 CLERK_SECRET_KEY=your-clerk-secret-key
+FLASK_SECRET_KEY=your_custom_flask_secret
 ```
 
 **`frontend/.env`:**
