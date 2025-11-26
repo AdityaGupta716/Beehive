@@ -19,6 +19,9 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     depends_on:
       - mongo
+    volumes:
+      - .:/app:rw
+      - ./client_secret.json:/app/client_secret.json:ro
 
   frontend:
     build: ./frontend
@@ -29,6 +32,8 @@ services:
       - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     depends_on:
       - flask-app
+    volumes:
+      - ./frontend:/app:rw
 
   mongo:
     image: mongo:latest

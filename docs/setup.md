@@ -5,30 +5,11 @@
 - MongoDB
 - Google OAuth2 credentials
 
-## Run with Docker (one command)
-
-If you prefer to run everything with Docker (backend, frontend, and MongoDB), use this option.
-
-1. Ensure you have Docker and Docker Compose v2 installed.
-2. Make sure required environment variables are set in a `.env` file at the project root (see the "Update `.env` File" section below) and that `client_secret.json` exists in the project root (see the "Create Google OAuth API Key" section).
-   - Frontend also needs `VITE_CLERK_PUBLISHABLE_KEY` (see the "Configure the frontend" section).
-3. From the project root, run:
-   ```bash
-   docker compose up --build
-   ```
-4. Access the services:
-   - Backend API: http://localhost:5000
-   - Frontend app: http://localhost:5173
-   - MongoDB: localhost:27017 (containerized)
-
-To stop containers, press Ctrl+C or run:
-```bash
-docker compose down
-```
-
-# Setup Instructions
+## Setup Instructions
 
 Follow these steps to set up the project:
+
+> **Note:** For Docker-based setup, see [docker-setup.md](docker-setup.md)
 
 1. **Clone the Beehive Repository**
     - Clone the Beehive repository to your local machine.
