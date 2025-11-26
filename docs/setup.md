@@ -84,11 +84,6 @@ Follow these steps to set up the project:
     }
     ```
       
-9. **Update `.env` File**
-    - Open the `.env` file and add the required credentials.
-    - Note: Add or modify the ADMIN_EMAILS variable with comma-separated emails. Make sure there are no spaces before or after the commas.
-    ```
-      
       
 9. **Update `.env` File** 
 
