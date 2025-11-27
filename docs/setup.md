@@ -5,9 +5,11 @@
 - MongoDB
 - Google OAuth2 credentials
 
-# Setup Instructions
+## Setup Instructions
 
 Follow these steps to set up the project:
+
+> **Note:** For Docker-based setup, see [docker-setup.md](docker-setup.md)
 
 1. **Clone the Beehive Repository**
     - Clone the Beehive repository to your local machine.
