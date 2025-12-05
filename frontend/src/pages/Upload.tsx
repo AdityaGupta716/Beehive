@@ -33,6 +33,7 @@ const Upload = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false); 
+  const [isDragActive, setIsDragActive] = useState(false); 
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -98,6 +99,50 @@ const Upload = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isPreviewing]);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => { 
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => { 
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false); 
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) { 
+      const file = e.dataTransfer.files[0];
+      // check file type
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/heif',
+        'application/pdf',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Invalid file type. Please upload valid file types.'); 
+        return;
+      }
+
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        handleAnalyzeMedia(file, selectedVoiceNote);
+      }
+    }
+  }, [selectedImage, selectedVoiceNote, handleAnalyzeMedia]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -289,7 +334,14 @@ const Upload = () => {
                   </div>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-300 dark:border-gray-600 transition-colors duration-200">
+                <label
+                  className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200
+                    ${isDragActive ? 'border-yellow-500 bg-gray-50 dark:bg-gray-700' : 'border-gray-300 dark:border-gray-600'}
+                  `}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                > 
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <CloudArrowUpIcon className="w-10 h-10 text-gray-400 mb-3" />
                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
