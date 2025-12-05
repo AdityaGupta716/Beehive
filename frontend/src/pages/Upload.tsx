@@ -15,6 +15,15 @@ import {
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
+const allowedFileTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heif',
+  'application/pdf',
+];
+
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
@@ -86,6 +95,21 @@ const Upload = () => {
     }
   },[]);
 
+  const handleImageProcessing = useCallback((file: File) => {
+    if (!allowedFileTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload an image or PDF.');
+      return;
+    }
+
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    handleAnalyzeMedia(file, selectedVoiceNote);
+  }, [selectedVoiceNote, handleAnalyzeMedia]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -118,57 +142,16 @@ const Upload = () => {
     setIsDragActive(false); 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) { 
       const file = e.dataTransfer.files[0];
-      // check file type
-      const allowedTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'image/heif',
-        'application/pdf',
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Invalid file type. Please upload valid file types.'); 
-        return;
-      }
-
-      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-        setSelectedImage(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-        handleAnalyzeMedia(file, selectedVoiceNote);
+      if (file) {
+        handleImageProcessing(file);
       }
     }
-  }, [selectedImage, selectedVoiceNote, handleAnalyzeMedia]);
+  }, [selectedVoiceNote, handleAnalyzeMedia]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // check file type
-      const allowedTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'image/heif',
-        'application/pdf',
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Invalid file type. Please upload an image or PDF.');
-        return;
-      }
-
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      // Trigger AI analysis
-      handleAnalyzeMedia(file, selectedVoiceNote);
+      handleImageProcessing(file);
     }
   };
 
