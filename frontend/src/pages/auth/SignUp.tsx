@@ -48,7 +48,6 @@ const SignUpPage = () => {
       path="/sign-up"
       signInUrl="/sign-in"
       fallbackRedirectUrl="/landing"
-      forceRedirectUrl="/sign-up"
     />
   );
 };
