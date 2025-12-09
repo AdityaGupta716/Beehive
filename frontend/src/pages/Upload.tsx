@@ -90,10 +90,22 @@ const Upload = () => {
     } catch (error) {
       console.error('Analysis error:', error);
       toast.error(error instanceof Error ? error.message : 'Analysis failed.', { id: analysisToast });
+      aiBlock(error);
     } finally {
       setIsAnalyzing(false);
     }
   },[]);
+
+const aiBlock = (error: unknown) => {
+  const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+  
+  const isBlocked =
+    errorMessage.includes('blocked');
+  if (isBlocked) {
+    toast.error("This image couldn't be analyzed due to content restrictions and was not uploaded.");
+    handleRemoveFile();
+  }
+};
 
   const handleImageProcessing = useCallback((file: File) => {
     if (!allowedFileTypes.includes(file.type)) {
