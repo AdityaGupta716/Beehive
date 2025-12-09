@@ -361,7 +361,7 @@ const Upload = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
+                className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
                 required
                 disabled={isAnalyzing}
               />
@@ -372,7 +372,7 @@ const Upload = () => {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 min-h-[100px] disabled:opacity-50"
+                className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 min-h-[100px] disabled:opacity-50"
                 required
                 disabled={isAnalyzing}
               />
@@ -384,7 +384,7 @@ const Upload = () => {
                 <select
                   value={sentiment}
                   onChange={(e) => setSentiment(e.target.value as SentimentType)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
                   disabled={isAnalyzing}
                 >
                   <option value="positive">Positive</option>
@@ -399,7 +399,7 @@ const Upload = () => {
                     value={customSentiment}
                     onChange={(e) => setCustomSentiment(e.target.value)}
                     placeholder="Enter custom sentiment"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                    className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
                     required
                   />
                 )}
