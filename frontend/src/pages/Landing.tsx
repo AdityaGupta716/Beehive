@@ -454,8 +454,7 @@ const Landing = () => {
           </section>
 
           {/* Features Section */}
-          <section id='features' className="py-20 px-4 sm:px-6 lg:px-8"></section>
-          <div className="max-w-7xl mx-auto mt-10 ">
+          <div id='features' className="max-w-7xl mx-auto mt-10 ">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
