@@ -400,10 +400,13 @@ const Gallery = () => {
   };
 
   useEffect(() => {
-    if (currentRollingIndex >= filteredImages.length && filteredImages.length > 0) {
-      setCurrentRollingIndex(0);
-    }
-  }, [filteredImages, currentRollingIndex]);
+    setCurrentRollingIndex(prevIndex => {
+      if (prevIndex >= filteredImages.length && filteredImages.length > 0) {
+        return 0;
+      }
+      return prevIndex;
+    });
+  }, [filteredImages.length]);
 
   const renderRollingView = () => {
     return (
