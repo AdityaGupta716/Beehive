@@ -106,8 +106,9 @@ const aiBlock = (error: unknown) => {
       toast.success('Fields autofilled by AI ✨', { id: analysisToast });
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error(error instanceof Error ? error.message : 'Analysis failed.', { id: analysisToast });
-      aiBlock(error);
+      if (!aiBlock(error)) {
+        toast.error(error instanceof Error ? error.message : 'Analysis failed.', { id: analysisToast });
+      }
     } finally {
       setIsAnalyzing(false);
     }
