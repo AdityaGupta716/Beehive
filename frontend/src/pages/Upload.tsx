@@ -48,6 +48,23 @@ const Upload = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Block restricted contents
+const aiBlock = (error: unknown) => {
+  const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+  
+  const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
+  if (isBlocked) {
+    toast.error("This image couldn't be analyzed due to content restrictions and was not uploaded.");
+    handleRemoveFile();
+  }
+};
+
+ const handleRemoveFile = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsPreviewing(false);
+  };
+
  // AI Analysis Function
   const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
     if (!imageFile && !audioFile) return;
@@ -89,11 +106,15 @@ const Upload = () => {
       toast.success('Fields autofilled by AI ✨', { id: analysisToast });
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error(error instanceof Error ? error.message : 'Analysis failed.', { id: analysisToast });
+      if (!aiBlock(error)) {
+        toast.error(error instanceof Error ? error.message : 'Analysis failed.', { id: analysisToast });
+      }
     } finally {
       setIsAnalyzing(false);
     }
-  },[]);
+  },[aiBlock]);
+
+
 
   const handleImageProcessing = useCallback((file: File) => {
     if (!allowedFileTypes.includes(file.type)) {
@@ -155,11 +176,7 @@ const Upload = () => {
     }
   };
 
-  const handleRemoveFile = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    setIsPreviewing(false);
-  };
+ 
 
   const startRecording = async () => {
     try {
