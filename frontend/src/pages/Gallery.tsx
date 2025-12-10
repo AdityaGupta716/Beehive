@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import {
   PencilIcon,
@@ -119,6 +119,12 @@ const Gallery = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentRollingIndex, setCurrentRollingIndex] = useState(0);
   const rollingContainerRef = useRef<HTMLDivElement>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sentimentFilter, setSentimentFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
 
   useEffect(() => {
     const fetchUploads = async () => {
@@ -344,13 +350,63 @@ const Gallery = () => {
     }
   };
 
+  const filteredImages = useMemo((): Upload[] => {
+    const lowercasedQuery = searchQuery.toLowerCase();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    const monthAgo = new Date(today);
+    monthAgo.setDate(today.getDate() - 30);
+    const fromDate = customDateFrom ? new Date(customDateFrom) : null;
+    if (fromDate) fromDate.setHours(0, 0, 0, 0);
+    const toDate = customDateTo ? new Date(customDateTo) : null;
+    if (toDate) toDate.setHours(23, 59, 59, 999);
+
+    return images.filter((image) => {
+      const matchesSearch = lowercasedQuery === '' || 
+        image.title.toLowerCase().includes(lowercasedQuery) || 
+        image.description.toLowerCase().includes(lowercasedQuery);
+      
+      const matchesSentiment = sentimentFilter === 'all' || 
+        (sentimentFilter === 'custom' && image.sentiment && !['positive', 'neutral', 'negative'].includes(image.sentiment.toLowerCase())) ||
+        (image.sentiment?.toLowerCase() === sentimentFilter.toLowerCase());
+      
+      let matchesDate = true;
+      if (dateFilter !== 'all') {
+        const imageDate = new Date(image.created_at);
+        if (dateFilter === 'lastWeek') {
+          matchesDate = imageDate >= weekAgo;
+        } else if (dateFilter === 'lastMonth') {
+          matchesDate = imageDate >= monthAgo;
+        } else if (dateFilter === 'custom' && fromDate && toDate) {
+          matchesDate = imageDate >= fromDate && imageDate <= toDate;
+        } else {
+          matchesDate = false;
+        }
+      }
+      
+      return matchesSearch && matchesSentiment && matchesDate;
+    });
+  }, [images, searchQuery, sentimentFilter, dateFilter, customDateFrom, customDateTo]);
+
   const handleRollingNavigation = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
-      setCurrentRollingIndex(prevIndex => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
+      setCurrentRollingIndex(prevIndex => (prevIndex === 0 ? filteredImages.length - 1 : prevIndex - 1));
     } else {
-      setCurrentRollingIndex(prevIndex => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
+      setCurrentRollingIndex(prevIndex => (prevIndex === filteredImages.length - 1 ? 0 : prevIndex + 1));
     }
   };
+
+  useEffect(() => {
+    setCurrentRollingIndex(prevIndex => {
+      if (prevIndex >= filteredImages.length && filteredImages.length > 0) {
+        return 0;
+      }
+      return prevIndex;
+    });
+  }, [filteredImages.length]);
 
   const renderRollingView = () => {
     return (
@@ -381,31 +437,33 @@ const Gallery = () => {
           </motion.button>
         </div>
 
-        {/* Image Counter */}
         <div className="absolute top-4 right-4 z-10">
           <div className="px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm text-white text-sm font-medium">
-            {currentRollingIndex + 1} / {images.length}
+            {filteredImages.length > 0 ? currentRollingIndex + 1 : 0} / {filteredImages.length}
           </div>
         </div>
-
-        {/* Main Image Display */}
-        <div className="relative h-[75vh] w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentRollingIndex}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <div className="relative w-full h-full max-w-5xl mx-auto">
-                <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl">
-                  <img
-                    src={getThumbnailUrl(images[currentRollingIndex].filename)}
-                    alt={images[currentRollingIndex].title}
-                    className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
-                  />
+        {filteredImages.length === 0 ? (
+          <div className="flex items-center justify-center h-[75vh]">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
+          </div>
+        ) : (
+          <div className="relative h-[75vh] w-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentRollingIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <div className="relative w-full h-full max-w-5xl mx-auto">
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl">
+                    <img
+                      src={getThumbnailUrl(filteredImages[currentRollingIndex].filename)}
+                      alt={filteredImages[currentRollingIndex].title}
+                      className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
+                    />
                   
                   {/* Enhanced Overlay */}
                   <motion.div 
@@ -421,7 +479,7 @@ const Gallery = () => {
                         transition={{ delay: 0.3 }}
                         className="text-3xl font-bold text-white mb-3"
                       >
-                        {images[currentRollingIndex].title}
+                        {filteredImages[currentRollingIndex].title}
                       </motion.h3>
                       <motion.p 
                         initial={{ opacity: 0, y: 10 }}
@@ -429,19 +487,19 @@ const Gallery = () => {
                         transition={{ delay: 0.4 }}
                         className="text-gray-200 text-lg mb-6"
                       >
-                        {images[currentRollingIndex].description}
+                        {filteredImages[currentRollingIndex].description}
                       </motion.p>
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          {images[currentRollingIndex].sentiment && (
+                          {filteredImages[currentRollingIndex].sentiment && (
                             <motion.span
                               initial={{ opacity: 0, scale: 0.8 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: 0.5 }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium ${getSentimentColor(images[currentRollingIndex].sentiment)}`}
+                              className={`px-4 py-2 rounded-full text-sm font-medium ${getSentimentColor(filteredImages[currentRollingIndex].sentiment)}`}
                             >
-                              {images[currentRollingIndex].sentiment}
+                              {filteredImages[currentRollingIndex].sentiment}
                             </motion.span>
                           )}
                           <motion.div
@@ -450,13 +508,13 @@ const Gallery = () => {
                             transition={{ delay: 0.6 }}
                             className="text-sm text-gray-300"
                           >
-                            Uploaded: {new Date(images[currentRollingIndex].created_at).toLocaleDateString()}
+                            Uploaded: {new Date(filteredImages[currentRollingIndex].created_at).toLocaleDateString()}
                           </motion.div>
                         </div>
                         
                         <div className="flex items-center space-x-3">
                           <motion.button
-                            onClick={() => handleEdit(images[currentRollingIndex])}
+                            onClick={() => handleEdit(filteredImages[currentRollingIndex])}
                             className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
@@ -467,7 +525,7 @@ const Gallery = () => {
                             </span>
                           </motion.button>
                           <motion.button
-                            onClick={() => handleDelete(images[currentRollingIndex].id)}
+                            onClick={() => handleDelete(filteredImages[currentRollingIndex].id)}
                             className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
@@ -478,7 +536,7 @@ const Gallery = () => {
                             </span>
                           </motion.button>
                           <motion.button
-                            onClick={() => handleDownload(images[currentRollingIndex].filename)}
+                            onClick={() => handleDownload(filteredImages[currentRollingIndex].filename)}
                             className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
@@ -495,12 +553,12 @@ const Gallery = () => {
                 </div>
               </div>
             </motion.div>
-          </AnimatePresence>
-        </div>
+            </AnimatePresence>
+          </div>
+        )}
 
-        {/* Enhanced Dot Navigation */}
         <div className="mt-6 mb-6 flex justify-center space-x-3">
-          {images.map((_, index) => (
+          {filteredImages.map((_, index) => (
             <motion.button
               key={index}
               onClick={() => setCurrentRollingIndex(index)}
@@ -599,6 +657,80 @@ const Gallery = () => {
           </div>
         </div>
 
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 transition-colors duration-200">
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="lg:col-span-2">
+                <label className="block mb-2 font-medium">
+                  Search
+                </label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by title or description..."
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium">
+                  Sentiment
+                </label>
+                <select
+                  value={sentimentFilter}
+                  onChange={(e) => setSentimentFilter(e.target.value)}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                >
+                  <option value="all">All</option>
+                  <option value="positive">Positive</option>
+                  <option value="neutral">Neutral</option>
+                  <option value="negative">Negative</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium">
+                  Date Range
+                </label>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    if (e.target.value !== 'custom') {
+                      setCustomDateFrom('');
+                      setCustomDateTo('');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 mb-2"
+                >
+                  <option value="all">All Time</option>
+                  <option value="lastWeek">Last Week</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                {dateFilter === 'custom' && (
+                  <div className="space-y-2 mt-2">
+                    <input
+                      type="date"
+                      value={customDateFrom}
+                      onChange={(e) => setCustomDateFrom(e.target.value)}
+                      className="w-full px-4 py-2 bg-white text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                    />
+                    <input
+                      type="date"
+                      value={customDateTo}
+                      onChange={(e) => setCustomDateTo(e.target.value)}
+                      className="w-full px-4 py-2 bg-white text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
@@ -607,7 +739,12 @@ const Gallery = () => {
           renderRollingView()
         ) : (
           <div className={viewMode === 'grid' ? `grid gap-6 ${getGridCols()}` : 'space-y-4'}>
-            {images.map((image, index) => (
+            {filteredImages.length === 0 ? (
+              <div className="col-span-full flex items-center justify-center h-64">
+                <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
+              </div>
+            ) : (
+              filteredImages.map((image, index) => (
               <motion.div
                 key={image.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -740,7 +877,8 @@ const Gallery = () => {
                   )}
                 </div>
               </motion.div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
