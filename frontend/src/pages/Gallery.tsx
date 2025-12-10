@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import {
   PencilIcon,
@@ -350,11 +350,24 @@ const Gallery = () => {
     }
   };
 
-  const getFilteredImages = (): Upload[] => {
+  const filteredImages = useMemo((): Upload[] => {
+    const lowercasedQuery = searchQuery.toLowerCase();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    const monthAgo = new Date(today);
+    monthAgo.setDate(today.getDate() - 30);
+    const fromDate = customDateFrom ? new Date(customDateFrom) : null;
+    if (fromDate) fromDate.setHours(0, 0, 0, 0);
+    const toDate = customDateTo ? new Date(customDateTo) : null;
+    if (toDate) toDate.setHours(23, 59, 59, 999);
+
     return images.filter((image) => {
-      const matchesSearch = searchQuery === '' || 
-        image.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        image.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = lowercasedQuery === '' || 
+        image.title.toLowerCase().includes(lowercasedQuery) || 
+        image.description.toLowerCase().includes(lowercasedQuery);
       
       const matchesSentiment = sentimentFilter === 'all' || 
         (sentimentFilter === 'custom' && image.sentiment && !['positive', 'neutral', 'negative'].includes(image.sentiment.toLowerCase())) ||
@@ -363,32 +376,22 @@ const Gallery = () => {
       let matchesDate = true;
       if (dateFilter !== 'all') {
         const imageDate = new Date(image.created_at);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
         if (dateFilter === 'lastWeek') {
-          const weekAgo = new Date(today);
-          weekAgo.setDate(today.getDate() - 7);
           matchesDate = imageDate >= weekAgo;
         } else if (dateFilter === 'lastMonth') {
-          const monthAgo = new Date(today);
-          monthAgo.setDate(today.getDate() - 30);
           matchesDate = imageDate >= monthAgo;
-        } else if (dateFilter === 'custom' && customDateFrom && customDateTo) {
-          const fromDate = new Date(customDateFrom);
-          fromDate.setHours(0, 0, 0, 0);
-          const toDate = new Date(customDateTo);
-          toDate.setHours(23, 59, 59, 999);
+        } else if (dateFilter === 'custom' && fromDate && toDate) {
           matchesDate = imageDate >= fromDate && imageDate <= toDate;
+        } else {
+          matchesDate = false;
         }
       }
       
       return matchesSearch && matchesSentiment && matchesDate;
     });
-  };
+  }, [images, searchQuery, sentimentFilter, dateFilter, customDateFrom, customDateTo]);
 
   const handleRollingNavigation = (direction: 'prev' | 'next') => {
-    const filteredImages = getFilteredImages();
     if (direction === 'prev') {
       setCurrentRollingIndex(prevIndex => (prevIndex === 0 ? filteredImages.length - 1 : prevIndex - 1));
     } else {
@@ -396,13 +399,13 @@ const Gallery = () => {
     }
   };
 
-  const renderRollingView = () => {
-    const filteredImages = getFilteredImages();
-    
+  useEffect(() => {
     if (currentRollingIndex >= filteredImages.length && filteredImages.length > 0) {
       setCurrentRollingIndex(0);
     }
-    
+  }, [filteredImages, currentRollingIndex]);
+
+  const renderRollingView = () => {
     return (
       <div className="relative w-full mx-auto overflow-hidden">
         {/* Enhanced Navigation Controls */}
@@ -733,12 +736,12 @@ const Gallery = () => {
           renderRollingView()
         ) : (
           <div className={viewMode === 'grid' ? `grid gap-6 ${getGridCols()}` : 'space-y-4'}>
-            {getFilteredImages().length === 0 ? (
+            {filteredImages.length === 0 ? (
               <div className="col-span-full flex items-center justify-center h-64">
                 <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
               </div>
             ) : (
-              getFilteredImages().map((image, index) => (
+              filteredImages.map((image, index) => (
               <motion.div
                 key={image.id}
                 initial={{ opacity: 0, y: 20 }}
