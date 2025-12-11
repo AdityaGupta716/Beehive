@@ -9,6 +9,7 @@ import sys
 import traceback
 from datetime import timedelta
 from functools import wraps
+from utils.sanitize import sanitize_text
 
 import bcrypt
 import fitz
@@ -128,11 +129,11 @@ flow = Flow.from_client_secrets_file(
 def upload_images():
     user_id = request.current_user["id"]
     try:
-        username = request.form.get("username", "")
+        username = sanitize_text(request.form.get("username", ""))
         files = request.files.getlist("files")  # Supports multiple file uploads
-        title = request.form.get("title", "")
-        sentiment = request.form.get("sentiment")
-        description = request.form.get("description", "")
+        title = sanitize_text(request.form.get("title", ""))
+        sentiment = sanitize_text(request.form.get("sentiment"))
+        description = sanitize_text(request.form.get("description", ""))
         audio_data = request.form.get(
             "audioData"
         )  # Base64 audio from browser (optional)
@@ -350,9 +351,9 @@ def generate_pdf_thumbnail(pdf_path, filename):
 def edit_image(image_id):
     try:
         # Get form data
-        title = request.form.get("title")
-        description = request.form.get("description")
-        sentiment = request.form.get("sentiment", "")
+        title = sanitize_text(request.form.get("title"))
+        description = sanitize_text(request.form.get("description"))
+        sentiment = sanitize_text(request.form.get("sentiment", ""))
 
         if not title or not description:
             return jsonify({"error": "Title and description are required."}), 400
@@ -529,7 +530,7 @@ def send_chat_message():
         from_role = request.current_user["role"]
         to_id = data.get("to_id")
         to_role = data.get("to_role")
-        content = data.get("content")
+        content = sanitize_text(data.get("content"))
         timestamp = datetime.datetime.now()
         if not (from_id and from_role and to_id and to_role and content):
             return jsonify({"error": "Missing required fields"}), 400

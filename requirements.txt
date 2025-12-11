@@ -63,3 +63,6 @@ python-magic==0.4.27
 
 # Basic security (will be enhanced in separate security PR)
 cryptography==44.0.1
+
+# input validation and sanitization
+bleach==6.3.0
