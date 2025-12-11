@@ -122,7 +122,42 @@ flow = Flow.from_client_secrets_file(
 )
 
 
-# Upload images
+MIME_SIZE_LIMITS = {
+    "image/jpeg": 10*1024*1024 ,
+    "image/png": 10 *1024*1024,
+    "image/webp": 10 * 1024 * 1024,
+    "image/gif": 8 * 1024 * 1024,
+    "image/heif": 15 * 1024 * 1024,
+    "image/heic": 15 * 1024 * 1024,
+    "application/pdf": 25 * 1024 * 1024,
+}
+
+def validate_file_size(file, mime_type, filename):
+    """
+    Validates the file size against allowed limits.
+    Returns None if valid, otherwise a response tuple.
+    """
+    # Determine max allowed size
+    max_allowed = MIME_SIZE_LIMITS.get(mime_type)
+
+    if max_allowed is None:
+        return jsonify({"error": f"Unsupported MIME type: {mime_type}"}), 400
+
+    # Detect actual file size
+    file.stream.seek(0, os.SEEK_END)
+    size = file.stream.tell()
+    file.stream.seek(0)
+
+    if size > max_allowed:
+        return (
+            jsonify({
+                "error": f"File '{filename}' exceeds max size limit "
+                         f"({max_allowed // (1024 * 1024)}MB)"
+            }),
+            413,
+        )
+    return None
+
 # Upload images
 @app.route("/api/user/upload", methods=["POST"])
 @require_auth
@@ -171,6 +206,10 @@ def upload_images():
                             "error": f'File content validation failed. Detected type "{file_mime_type}" is not allowed.'
                         }
                     ), 400
+                    
+                size_error = validate_file_size(file, file_mime_type, filename)
+                if size_error:
+                    return size_error
 
                 filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
