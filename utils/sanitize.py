@@ -1,6 +1,7 @@
 import bleach
+from typing import Optional
 
-def sanitize_text(value: str) -> str:
+def sanitize_text(value: Optional[str]) -> str:
     if not value:
         return ""
     return bleach.clean(
