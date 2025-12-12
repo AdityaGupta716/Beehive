@@ -9,6 +9,7 @@ import sys
 import traceback
 from datetime import timedelta
 from functools import wraps
+from utils.sanitize import sanitize_text
 
 import bcrypt
 import fitz
@@ -121,18 +122,53 @@ flow = Flow.from_client_secrets_file(
 )
 
 
-# Upload images
+MIME_SIZE_LIMITS = {
+    "image/jpeg": 10*1024*1024 ,
+    "image/png": 10 *1024*1024,
+    "image/webp": 10 * 1024 * 1024,
+    "image/gif": 8 * 1024 * 1024,
+    "image/heif": 15 * 1024 * 1024,
+    "image/heic": 15 * 1024 * 1024,
+    "application/pdf": 25 * 1024 * 1024,
+}
+
+def validate_file_size(file, mime_type, filename):
+    """
+    Validates the file size against allowed limits.
+    Returns None if valid, otherwise a response tuple.
+    """
+    # Determine max allowed size
+    max_allowed = MIME_SIZE_LIMITS.get(mime_type)
+
+    if max_allowed is None:
+        return jsonify({"error": f"Unsupported MIME type: {mime_type}"}), 400
+
+    # Detect actual file size
+    file.stream.seek(0, os.SEEK_END)
+    size = file.stream.tell()
+    file.stream.seek(0)
+
+    if size > max_allowed:
+        return (
+            jsonify({
+                "error": f"File '{filename}' exceeds max size limit "
+                         f"({max_allowed // (1024 * 1024)}MB)"
+            }),
+            413,
+        )
+    return None
+
 # Upload images
 @app.route("/api/user/upload", methods=["POST"])
 @require_auth
 def upload_images():
     user_id = request.current_user["id"]
     try:
-        username = request.form.get("username", "")
+        username = sanitize_text(request.form.get("username", ""))
         files = request.files.getlist("files")  # Supports multiple file uploads
-        title = request.form.get("title", "")
-        sentiment = request.form.get("sentiment")
-        description = request.form.get("description", "")
+        title = sanitize_text(request.form.get("title", ""))
+        sentiment = sanitize_text(request.form.get("sentiment"))
+        description = sanitize_text(request.form.get("description", ""))
         audio_data = request.form.get(
             "audioData"
         )  # Base64 audio from browser (optional)
@@ -170,6 +206,10 @@ def upload_images():
                             "error": f'File content validation failed. Detected type "{file_mime_type}" is not allowed.'
                         }
                     ), 400
+                    
+                size_error = validate_file_size(file, file_mime_type, filename)
+                if size_error:
+                    return size_error
 
                 filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -350,9 +390,9 @@ def generate_pdf_thumbnail(pdf_path, filename):
 def edit_image(image_id):
     try:
         # Get form data
-        title = request.form.get("title")
-        description = request.form.get("description")
-        sentiment = request.form.get("sentiment", "")
+        title = sanitize_text(request.form.get("title"))
+        description = sanitize_text(request.form.get("description"))
+        sentiment = sanitize_text(request.form.get("sentiment", ""))
 
         if not title or not description:
             return jsonify({"error": "Title and description are required."}), 400
@@ -529,7 +569,7 @@ def send_chat_message():
         from_role = request.current_user["role"]
         to_id = data.get("to_id")
         to_role = data.get("to_role")
-        content = data.get("content")
+        content = sanitize_text(data.get("content"))
         timestamp = datetime.datetime.now()
         if not (from_id and from_role and to_id and to_role and content):
             return jsonify({"error": "Missing required fields"}), 400
