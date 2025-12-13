@@ -615,7 +615,7 @@ const Landing = () => {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
                   key={index}
-                  className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                  className="flex flex-col items-center text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                   whileHover={{ x: 5 }}
                 >
                   <div className="text-3xl">{item.icon}</div>
