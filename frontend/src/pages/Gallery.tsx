@@ -179,7 +179,6 @@ const Gallery = () => {
         
         setTotalCount(data.totalCount);
         setTotalPages(data.totalPages);
-        console.log(`Loaded page ${currentPage} of ${data.totalPages}`);
       } catch (error) {
         console.error('Error fetching uploads:', error);
         if (currentPage === 1) {
