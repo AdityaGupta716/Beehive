@@ -48,7 +48,7 @@ from database.userdatahandler import (
     get_all_users,
     get_image_by_id,
     get_images_by_user,
-    get_paginated_images_by_user,
+    _get_paginated_images_by_user,
     get_user_by_username,
     save_image,
     save_notification,
@@ -455,7 +455,7 @@ def user_images_show():
         page = max(1, page)
         page_size = min(max(1, page_size), 50)  # Max 50 images per page
         
-        result = get_paginated_images_by_user(user_id, page, page_size)
+        result = _get_paginated_images_by_user(user_id, page, page_size)
         
         response_data = {
             "images": result['images'],
