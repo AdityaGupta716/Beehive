@@ -91,7 +91,7 @@ Follow these steps to set up the project:
 
     **Prerequisite:** Make sure you've completed Step 8 and configured the session claim in Clerk Dashboard (Configure → Sessions → Claims). The session claim must include `{"role": "{{user.public_metadata.role || 'user'}}"}` for the role to be included in JWT tokens.
 
-    For detailed step-by-step instructions on how to grant admin access, see [Admin Access Guide](../common/admin-access.md).
+    For detailed step-by-step instructions on how to grant admin access, see [Admin Access Guide](common/admin-access.md).
 
 10. **Update `.env` File** 
 
