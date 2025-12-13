@@ -55,6 +55,7 @@ from database.userdatahandler import (
 )
 from decorators import login_is_required, require_admin_role
 from utils.clerk_auth import require_auth
+from config import Config
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
