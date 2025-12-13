@@ -911,7 +911,7 @@ const Gallery = () => {
             </div>
 
             {/* Infinite Scroll Observer Target */}
-            {currentPage < totalPages && (
+            {/* {currentPage < totalPages && (
               <div ref={observerTarget} className="flex justify-center items-center py-8">
                 {loadingMore ? (
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
@@ -919,10 +919,10 @@ const Gallery = () => {
                   <p className="text-gray-500 dark:text-gray-400">Scroll down to view more...</p>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Load More Button (alt) */}
-            {currentPage < totalPages && !loadingMore && (
+            {/* {currentPage < totalPages && !loadingMore && (
               <div className="flex justify-center mt-8">
                 <button
                   onClick={() => setCurrentPage(prev => prev + 1)}
@@ -931,7 +931,7 @@ const Gallery = () => {
                   Load More Images ({totalCount - images.length} remaining)
                 </button>
               </div>
-            )}
+            )} */}
 
             {/* Infinite scroll observer target */}
             <div 
