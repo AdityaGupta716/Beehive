@@ -148,7 +148,7 @@ const Gallery = () => {
         // Get the authentication token from Clerk
         const token = await window.Clerk.session?.getToken();
         
-        const response = await fetch(`http://127.0.0.1:5000/api/user/user_uploads?page=${currentPage}&page_size=${pageSize}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/user/user_uploads?page=${currentPage}&page_size=${pageSize}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
