@@ -102,7 +102,7 @@ def get_paginated_images_by_user(user_id, page=1, page_size=12):
             'total_count': total_count,
             'page': page,
             'pageSize': page_size,
-            'totalPages': (total_count + page_size - 1)
+            'totalPages': (total_count + page_size - 1) // page_size if page_size > 0 else 0
         }
     except Exception as e:
         print(f"Error getting paginated images: {str(e)}")
