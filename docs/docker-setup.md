@@ -20,39 +20,12 @@ cd Beehive
 ```
 
 **Grant Admin Access for Local Development:**
-To access the admin dashboard in your local development environment:
 
 **Prerequisite:** Make sure the session claim is configured in Clerk Dashboard (Configure → Sessions → Claims) with `{"role": "{{user.public_metadata.role || 'user'}}"}` as mentioned above.
 
-1. Go to [Clerk Dashboard](https://dashboard.clerk.dev/)
-2. Navigate to **Users** (not Organizations)
-3. Find your user account (search by your email address)
-4. Click on your user profile
-5. Go to **Metadata** section
-6. Under **Public metadata**, add:
-   ```json
-   {
-     "role": "admin"
-   }
-   ```
-7. Click **Save**
-8. **Logout and login again** from the application to refresh your session token
+For detailed step-by-step instructions on how to grant admin access, see [Admin Access Guide](common/admin-access.md).
 
 **Note:** This admin access is for local development only and uses your local Docker MongoDB instance, separate from production.
-
-**Verification:**
-After logging in again, you can verify your role in the browser console:
-```javascript
-console.log(user?.publicMetadata?.role)
-// Should show: "admin"
-```
-
-**Accessing Admin Dashboard:**
-- Navigate to `http://localhost:5173/admin`
-- You should now have access to:
-  - Admin Dashboard (`/admin`)
-  - User Management (`/admin/users`)
-  - Analytics (`/admin/analytics`)
 
 **Google OAuth:**
 - Create OAuth credentials in Google Cloud Console
