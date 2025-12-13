@@ -79,7 +79,7 @@ def get_paginated_images_by_user(user_id, page=1, page_size=12):
         skip = (page - 1) * page_size
         
         # total count 
-        totalCount = beehive_image_collection.count_documents({'user_id': user_id})
+        total_count = beehive_image_collection.count_documents({'user_id': user_id})
         
         # Get images
         images = list(beehive_image_collection.find({'user_id': user_id})
@@ -99,16 +99,16 @@ def get_paginated_images_by_user(user_id, page=1, page_size=12):
         
         return {
             'images': formatted_images,
-            'totalCount': totalCount,
+            'total_count': total_count,
             'page': page,
             'pageSize': page_size,
-            'totalPages': (totalCount + page_size - 1)
+            'totalPages': (total_count + page_size - 1)
         }
     except Exception as e:
         print(f"Error getting paginated images: {str(e)}")
         return {
             'images': [],
-            'totalCount': 0,
+            'total_count': 0,
             'page': page,
             'pageSize': page_size,
             'totalPages': 0
@@ -367,7 +367,7 @@ def get_user_analytics(trend_days=7):
         
         count_response = requests.get('https://api.clerk.com/v1/users/count', headers={'Authorization': f'Bearer {os.getenv("CLERK_SECRET_KEY")}'})
         count_response.raise_for_status()
-        overall_total_users = count_response.json().get('totalCount', 0)
+        overall_total_users = count_response.json().get('total_count', 0)
 
         # Process data for summary and trend
         new_this_month, new_last_month = 0, 0

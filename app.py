@@ -460,7 +460,7 @@ def user_images_show():
         response_data = {
             "images": result['images'],
             "user_id": user_id,
-            "totalCount": result['totalCount'],
+            "total_count": result['total_count'],
             "page": result['page'],
             "pageSize": result['pageSize'],
             "totalPages": result['totalPages'],
