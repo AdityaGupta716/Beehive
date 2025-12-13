@@ -909,28 +909,7 @@ const Gallery = () => {
             )}
             </div>
 
-            {/* Infinite Scroll Observer Target */}
-            {/* {currentPage < totalPages && (
-              <div ref={observerTarget} className="flex justify-center items-center py-8">
-                {loadingMore ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
-                ) : (
-                  <p className="text-gray-500 dark:text-gray-400">Scroll down to view more...</p>
-                )}
-              </div>
-            )} */}
 
-            {/* Load More Button (alt) */}
-            {/* {currentPage < totalPages && !loadingMore && (
-              <div className="flex justify-center mt-8">
-                <button
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                  className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg transition-colors duration-200"
-                >
-                  Load More Images ({totalCount - images.length} remaining)
-                </button>
-              </div>
-            )} */}
 
             {/* Infinite scroll observer target */}
             <div 
