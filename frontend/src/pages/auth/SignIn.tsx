@@ -10,7 +10,7 @@ const SignInPage = () => {
           card: 
             'bg-white shadow-none border-none',
           headerTitle: 
-            'text-2xl font-bold text-gray-900 dark:text-white',
+            'text-2xl font-bold text-gray-900 dark:text-gray-900',
           headerSubtitle: 
             'text-gray-500 dark:text-gray-900',
           socialButtonsBlockButton: 
