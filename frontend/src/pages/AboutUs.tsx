@@ -84,11 +84,7 @@ const AboutUs = () => {
         {/* Dark Mode Toggle - Top Right Corner */}
         <motion.button
           onClick={toggleTheme}
-          className={`fixed top-6 right-6 z-50 p-3 rounded-lg transition-all duration-200 ${
-            theme === 'dark'
-              ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400 shadow-lg shadow-yellow-400/20'
-              : 'bg-white hover:bg-gray-100 text-gray-800 shadow-lg border border-gray-200'
-          }`}
+          className="fixed top-6 right-6 z-50 p-3 rounded-lg transition-all duration-200 shadow-lg bg-white hover:bg-gray-100 text-gray-800 border border-gray-200 dark:border-none dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-yellow-400 dark:shadow-yellow-400/20"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -212,7 +208,7 @@ const AboutUs = () => {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-2xl dark:hover:shadow-gray-900/70 transition-all duration-300 overflow-hidden"
+                                className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-gray-900/70 transition-all duration-300 overflow-hidden"
               >
                 {/* Hexagon Background Pattern */}
                 {/* <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-300">
