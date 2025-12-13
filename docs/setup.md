@@ -155,10 +155,6 @@ Follow these steps to set up the project:
     ### Flask Security (Optional - defaults to 'beehive' if not set)
     FLASK_SECRET_KEY=your_custom_flask_secret
 
-    ### CORS Configuration (Optional - defaults to common development origins if not set)
-    CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000
-    ```
-
     #### 🔑 **Finding Your CLERK_SECRET_KEY:**
     1. Go to your [Clerk Dashboard](https://dashboard.clerk.dev/)
     2. Select your application
