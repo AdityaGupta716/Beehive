@@ -87,7 +87,13 @@ Follow these steps to set up the project:
     ```
       
       
-9. **Update `.env` File** 
+9. **Grant Admin Access for Local Development**
+
+    **Prerequisite:** Make sure you've completed Step 8 and configured the session claim in Clerk Dashboard (Configure → Sessions → Claims). The session claim must include `{"role": "{{user.public_metadata.role || 'user'}}"}` for the role to be included in JWT tokens.
+
+    For detailed step-by-step instructions on how to grant admin access, see [Admin Access Guide](common/admin-access.md).
+
+10. **Update `.env` File** 
 
     Open the `.env` file and add the required credentials. **All environment variables below are mandatory** for the application to function properly.
 
@@ -164,7 +170,7 @@ Follow these steps to set up the project:
 
     Make sure your `.env` file contains all required variables and restart the application.
    
-10. **Run the backend**
+11. **Run the backend**
     - Execute the `app.py` file to run the application.
     ```bash
     python app.py
@@ -172,7 +178,7 @@ Follow these steps to set up the project:
 
     This sets up the backend.
 
-11. **Configure the frontend**
+12. **Configure the frontend**
     - Install the frontend dependencies.
     ```bash
     cd frontend
@@ -184,7 +190,7 @@ Follow these steps to set up the project:
     VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
     ```
 
-11. **Run the frontend**
+13. **Run the frontend**
     - Add .env file in the frontend folder.
 
     ```
@@ -196,7 +202,7 @@ Follow these steps to set up the project:
     npm run dev
      ```
 
-12. **Confirm the App is working.**
+14. **Confirm the App is working.**
     - Open [http://localhost:5173](http://localhost:5173) to view the app in your browser.
     
 By following these steps, you will have the project set up and ready to use.
