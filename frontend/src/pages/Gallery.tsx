@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   PencilIcon,
   TrashIcon,
@@ -107,6 +107,7 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 
 const Gallery = () => {
   const { user } = useUser();
+  const clerk = useClerk();
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingImage, setEditingImage] = useState<Upload | null>(null);
@@ -134,7 +135,7 @@ const Gallery = () => {
         setLoading(true);
         
         // Get the authentication token from Clerk
-        const token = await window.Clerk.session?.getToken();
+        const token = await clerk.session?.getToken();
         
         const response = await fetch(`http://127.0.0.1:5000/api/user/user_uploads`, {
           method: 'GET',
@@ -184,7 +185,7 @@ const Gallery = () => {
       formData.append('sentiment', sentiment);
 
       // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
+      const token = await clerk.session?.getToken();
 
       const response = await fetch(`http://127.0.0.1:5000/edit/${id}`, {
         method: 'PATCH',
@@ -218,7 +219,7 @@ const Gallery = () => {
 
     try {
       // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
+      const token = await clerk.session?.getToken();
 
       const response = await fetch(`http://127.0.0.1:5000/delete/${id}`, {
         method: 'DELETE',
