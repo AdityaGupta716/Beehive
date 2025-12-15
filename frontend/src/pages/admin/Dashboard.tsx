@@ -76,7 +76,7 @@ const Dashboard = () => {
       // Get the authentication token from Clerk
       const token = await clerk.session?.getToken();
       
-      const response = await fetch('http://127.0.0.1:5000/api/admin/dashboard?limit=10', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000'}/api/admin/dashboard?limit=10`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
