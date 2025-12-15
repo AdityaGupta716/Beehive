@@ -41,6 +41,8 @@ REDIRECT_URI=http://localhost:5000/admin/login/callback
 ADMIN_EMAILS=admin1@example.com,admin2@example.com
 CLERK_SECRET_KEY=your-clerk-secret-key
 FLASK_SECRET_KEY=your_custom_flask_secret
+# CORS Configuration (Optional - comma-separated list of allowed origins)
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000
 ```
 
 **`frontend/.env`:**
@@ -65,4 +67,3 @@ docker compose up --build
 **Stop:** `Ctrl+C` or `docker compose down`
 
 **Restart:** `docker compose up`
-

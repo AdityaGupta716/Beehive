@@ -17,12 +17,11 @@ class Config:
     DATABASE_NAME = os.getenv('DATABASE_NAME', 'beehive')
     
     # CORS Configuration
-    CORS_ORIGINS = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ]
+    _cors_origins_env = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
+    )
+    CORS_ORIGINS = [origin.strip() for origin in _cors_origins_env.split(",") if origin.strip()]
     
     @staticmethod
     def validate_config():

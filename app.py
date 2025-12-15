@@ -56,6 +56,7 @@ from database.userdatahandler import (
 )
 from decorators import login_is_required, require_admin_role
 from utils.clerk_auth import require_auth
+from config import Config
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -84,7 +85,7 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+            "origins": Config.CORS_ORIGINS,
             "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
             "expose_headers": ["Content-Type", "Authorization"],
