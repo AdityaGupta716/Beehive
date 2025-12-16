@@ -175,7 +175,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
             )}
             <div ref={messagesEndRef} />
           </div>
-          <div className="p-3 sm:p-4 border-t border-yellow-500 bg-white flex gap-1 sm:gap-2 rounded-none sm:rounded-b-2xl">
+          <div className="p-3 sm:p-4 border-t border-yellow-500 bg-white dark:bg-gray-900 flex gap-1 sm:gap-2 rounded-none sm:rounded-b-2xl">
             <input
               type="text"
               className="flex-1 px-3 sm:px-4 py-2 rounded-full border border-yellow-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400 placeholder-gray-400 dark:placeholder-gray-500 text-sm sm:text-base"
