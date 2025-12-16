@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   PencilIcon,
   TrashIcon,
@@ -107,6 +107,7 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 
 const Gallery = () => {
   const { user } = useUser();
+  const clerk = useClerk();
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingImage, setEditingImage] = useState<Upload | null>(null);
@@ -126,6 +127,21 @@ const Gallery = () => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
+  // Function for authenticated API calls
+  const authenticatedFetch = useCallback(async (path: string, options: RequestInit = {}) => {
+    const token = await clerk.session?.getToken();
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+    };
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+    return fetch(`${baseUrl}${path}`, { 
+      ...options, 
+      headers, 
+      credentials: 'include' 
+    });
+  }, [clerk]);
+
   useEffect(() => {
     const fetchUploads = async () => {
       if (!user?.id) return;
@@ -133,16 +149,11 @@ const Gallery = () => {
       try {
         setLoading(true);
         
-        // Get the authentication token from Clerk
-        const token = await window.Clerk.session?.getToken();
-        
-        const response = await fetch(`http://127.0.0.1:5000/api/user/user_uploads`, {
+        const response = await authenticatedFetch(`/api/user/user_uploads`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
-          credentials: 'include',
           mode: 'cors'
         });
         
@@ -170,7 +181,7 @@ const Gallery = () => {
     };
 
     fetchUploads();
-  }, [user?.id]);
+  }, [user?.id, authenticatedFetch]);
 
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
@@ -183,16 +194,9 @@ const Gallery = () => {
       formData.append('description', description);
       formData.append('sentiment', sentiment);
 
-      // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
-
-      const response = await fetch(`http://127.0.0.1:5000/edit/${id}`, {
+      const response = await authenticatedFetch(`/edit/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         body: formData,
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -217,15 +221,8 @@ const Gallery = () => {
     }
 
     try {
-      // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
-
-      const response = await fetch(`http://127.0.0.1:5000/delete/${id}`, {
+      const response = await authenticatedFetch(`/delete/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
       });
 
       if (!response.ok) {
