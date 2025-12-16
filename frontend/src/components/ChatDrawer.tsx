@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useClerk } from '@clerk/clerk-react';
+import { apiUrl } from '../utils/api';
 
 interface ChatDrawerProps {
   userId: string;
@@ -35,7 +36,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
   const fetchUserList = async () => {
     try {
       const token = await clerk.session?.getToken();
-      const res = await fetch('http://127.0.0.1:5000/api/admin/users/only-users', {
+      const res = await fetch(apiUrl('/api/admin/users/only-users'), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -73,7 +74,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
       const id = userRole === 'admin' ? adminTargetId : userId;
       if (!id) return;
       const token = await clerk.session?.getToken();
-      const res = await fetch(`http://127.0.0.1:5000/api/chat/messages?user_id=${id}`, {
+      const res = await fetch(apiUrl(`/api/chat/messages?user_id=${id}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -94,7 +95,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
         content: input.trim(),
       };
       const token = await clerk.session?.getToken();
-      const res = await fetch('http://127.0.0.1:5000/api/chat/send', {
+      const res = await fetch(apiUrl('/api/chat/send'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

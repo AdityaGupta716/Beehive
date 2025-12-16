@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
+import { apiUrl } from '../utils/api';
 import {
   PencilIcon,
   TrashIcon,
@@ -134,8 +135,7 @@ const Gallery = () => {
       ...options.headers,
       'Authorization': `Bearer ${token}`,
     };
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
-    return fetch(`${baseUrl}${path}`, { 
+    return fetch(apiUrl(path), { 
       ...options, 
       headers, 
       credentials: 'include' 
@@ -249,7 +249,7 @@ const Gallery = () => {
   };
 
   const handleDownload = (filename: string) => {
-    const url = `http://127.0.0.1:5000/static/uploads/${filename}`;
+    const url = apiUrl(`/static/uploads/${filename}`);
     window.open(url, '_blank');
     toast.success('File opened in new window!');
   };
@@ -275,7 +275,7 @@ const Gallery = () => {
   const renderFilePreview = () => {
     if (!selectedFile) return null;
 
-    const fileUrl = `http://127.0.0.1:5000/static/uploads/${selectedFile}`;
+    const fileUrl = apiUrl(`/static/uploads/${selectedFile}`);
     const isPDF = selectedFile.toLowerCase().endsWith('.pdf');
 
     if (isPDF) {
@@ -300,10 +300,10 @@ const Gallery = () => {
   const getThumbnailUrl = (filename: string) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
       // For PDFs, use the thumbnail
-      return `http://127.0.0.1:5000/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`;
+      return apiUrl(`/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`);
     }
     // For images, use the original file
-    return `http://127.0.0.1:5000/static/uploads/${filename}`;
+    return apiUrl(`/static/uploads/${filename}`);
   };
 
   const getSentimentColor = (sentiment?: string) => {
@@ -861,7 +861,7 @@ const Gallery = () => {
                       {currentAudio === image.audio_filename && (
                         <motion.audio
                           ref={audioRef}
-                          src={`http://127.0.0.1:5000/audio/${image.audio_filename}`}
+                          src={apiUrl(`/audio/${image.audio_filename}`)}
                           controls
                           className="h-6"
                           onEnded={() => setCurrentAudio(null)}

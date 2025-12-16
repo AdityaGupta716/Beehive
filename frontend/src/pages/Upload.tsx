@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
 
 const allowedFileTypes = [
   'image/jpeg',
@@ -81,7 +82,7 @@ const aiBlock = (error: unknown) => {
         formData.append('audio', audioFile);
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/analyze-media`, {
+      const response = await fetch(apiUrl('/api/analyze-media'), {
         method: 'POST',
         body: formData,
       });
@@ -287,7 +288,7 @@ const MAX_SIZE:Record<string,number>={
       }
       // Make the upload request
       const token = await clerk.session?.getToken();
-      const response = await fetch(`http://127.0.0.1:5000/api/user/upload`, {
+      const response = await fetch(apiUrl('/api/user/upload'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

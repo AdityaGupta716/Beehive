@@ -15,6 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { apiUrl } from "../../utils/api";
 
 // Mock data - replace with actual data from backend
 // const mockAnalytics = {
@@ -117,7 +118,7 @@ const Analytics = () => {
       setLoading(true);
       setError(null);
       const token = await clerk.session?.getToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000'}/api/admin/analytics`, {
+      const response = await fetch(apiUrl('/api/admin/analytics'), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
