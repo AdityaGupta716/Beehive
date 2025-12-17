@@ -4,6 +4,7 @@ import { SunIcon, MoonIcon, BellIcon, ChatBubbleLeftRightIcon, Bars3Icon, XMarkI
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 import ChatDrawer from '../components/ChatDrawer';
+import { apiUrl } from '../utils/api';
 
 interface NotificationItem {
   _id: string;
@@ -57,7 +58,7 @@ const AdminLayout = () => {
   const fetchUnseenNotifications = async () => {
     try {
       const token = await clerk.session?.getToken();
-      const res = await fetch(`http://127.0.0.1:5000/api/admin/notifications?page=1&limit=${NOTIFICATION_PAGE_SIZE}`, {
+      const res = await fetch(apiUrl(`/api/admin/notifications?page=1&limit=${NOTIFICATION_PAGE_SIZE}`), {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
       });
@@ -76,7 +77,7 @@ const AdminLayout = () => {
 
       // Fetch without marking seen
       const res = await fetch(
-        `http://127.0.0.1:5000/api/admin/notifications?page=1&limit=${NOTIFICATION_PAGE_SIZE}`,
+        apiUrl(`/api/admin/notifications?page=1&limit=${NOTIFICATION_PAGE_SIZE}`),
         {
           headers: { Authorization: `Bearer ${token}` },
           credentials: 'include',
@@ -97,7 +98,7 @@ const AdminLayout = () => {
 
       // Mark only these as seen
       if (unseenIds.length > 0) {
-        await fetch("http://127.0.0.1:5000/api/admin/notifications/mark_seen", {
+        await fetch(apiUrl('/api/admin/notifications/mark_seen'), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -122,7 +123,7 @@ const AdminLayout = () => {
       const token = await clerk.session?.getToken();
 
       const res = await fetch(
-        `http://127.0.0.1:5000/api/admin/notifications?page=${nextPage}&limit=${NOTIFICATION_PAGE_SIZE}`,
+        apiUrl(`/api/admin/notifications?page=${nextPage}&limit=${NOTIFICATION_PAGE_SIZE}`),
         {
           headers: { Authorization: `Bearer ${token}` },
           credentials: 'include',

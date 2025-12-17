@@ -4,6 +4,7 @@ import { useClerk } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { ArrowLeftIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
+import { apiUrl } from '../../utils/api';
 
 interface Upload {
   id: string;
@@ -35,7 +36,7 @@ const UserUploads = () => {
         // Get the authentication token from Clerk
         const token = await clerk.session?.getToken();
         
-        const response = await fetch(`http://127.0.0.1:5000/api/admin/user_uploads/${userId}`, {
+        const response = await fetch(apiUrl(`/api/admin/user_uploads/${userId}`), {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -104,7 +105,7 @@ const UserUploads = () => {
   const renderFilePreview = () => {
     if (!selectedFile) return null;
 
-    const fileUrl = `http://127.0.0.1:5000/static/uploads/${selectedFile}`;
+    const fileUrl = apiUrl(`/static/uploads/${selectedFile}`);
 
     if (isPDF(selectedFile)) {
       return (
@@ -126,7 +127,7 @@ const UserUploads = () => {
   };
 
   const handleDownload = (filename: string, type: 'file' | 'audio') => {
-    const url = `http://127.0.0.1:5000/static/uploads/${filename}`;
+    const url = apiUrl(`/static/uploads/${filename}`);
     window.open(url, '_blank');
     toast.success(`${type === 'file' ? 'File' : 'Audio'} opened in new window!`);
   };
@@ -229,7 +230,7 @@ const UserUploads = () => {
                                   ref={audioRef}
                                   controls
                                   className="w-full [&::-webkit-media-controls-panel]:bg-gray-100 dark:[&::-webkit-media-controls-panel]:bg-gray-800 [&::-webkit-media-controls-current-time-display]:text-gray-700 dark:[&::-webkit-media-controls-current-time-display]:text-gray-300 [&::-webkit-media-controls-time-remaining-display]:text-gray-700 dark:[&::-webkit-media-controls-time-remaining-display]:text-gray-300 [&::-webkit-media-controls-timeline]:bg-gray-300 dark:[&::-webkit-media-controls-timeline]:bg-gray-600 [&::-webkit-media-controls-volume-slider]:bg-gray-300 dark:[&::-webkit-media-controls-volume-slider]:bg-gray-600"
-                                  src={`http://127.0.0.1:5000/static/uploads/${upload.audio_filename}`}
+                                  src={apiUrl(`/static/uploads/${upload.audio_filename}`)}
                                   onEnded={() => setCurrentAudio(null)}
                                 >
                                   Your browser does not support the audio element.
