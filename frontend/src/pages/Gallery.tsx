@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useUser, useClerk } from '@clerk/clerk-react';
+import { apiUrl } from '../utils/api';
 import {
   PencilIcon,
   TrashIcon,
@@ -107,6 +108,7 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 
 const Gallery = () => {
   const { user } = useUser();
+  const clerk = useClerk();
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -133,6 +135,20 @@ const Gallery = () => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
+  // Function for authenticated API calls
+  const authenticatedFetch = useCallback(async (path: string, options: RequestInit = {}) => {
+    const token = await clerk.session?.getToken();
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+    };
+    return fetch(apiUrl(path), { 
+      ...options, 
+      headers, 
+      credentials: 'include' 
+    });
+  }, [clerk]);
+
   useEffect(() => {
     const fetchUploads = async () => {
       if (!user?.id) return;
@@ -145,16 +161,11 @@ const Gallery = () => {
           setLoadingMore(true);
         }
         
-        // Get the authentication token from Clerk
-        const token = await window.Clerk.session?.getToken();
-        
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/user/user_uploads?page=${currentPage}&page_size=${pageSize}`, {
+        const response = await authenticatedFetch(`/api/user/user_uploads`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
-          credentials: 'include',
           mode: 'cors'
         });
         
@@ -191,26 +202,7 @@ const Gallery = () => {
     };
 
     fetchUploads();
-  }, [user?.id, currentPage, pageSize]);
-
-  // Infinite scroll with Intersection Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && currentPage < totalPages && !loadingMore && !loading) {
-          setLoadingMore(true);
-          setCurrentPage(prev => prev + 1);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [currentPage, totalPages, loadingMore, loading]);
+  }, [user?.id, authenticatedFetch]);
 
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
@@ -223,16 +215,9 @@ const Gallery = () => {
       formData.append('description', description);
       formData.append('sentiment', sentiment);
 
-      // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
-
-      const response = await fetch(`http://127.0.0.1:5000/edit/${id}`, {
+      const response = await authenticatedFetch(`/edit/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         body: formData,
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -257,15 +242,8 @@ const Gallery = () => {
     }
 
     try {
-      // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
-
-      const response = await fetch(`http://127.0.0.1:5000/delete/${id}`, {
+      const response = await authenticatedFetch(`/delete/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -292,7 +270,7 @@ const Gallery = () => {
   };
 
   const handleDownload = (filename: string) => {
-    const url = `http://127.0.0.1:5000/static/uploads/${filename}`;
+    const url = apiUrl(`/static/uploads/${filename}`);
     window.open(url, '_blank');
     toast.success('File opened in new window!');
   };
@@ -318,7 +296,7 @@ const Gallery = () => {
   const renderFilePreview = () => {
     if (!selectedFile) return null;
 
-    const fileUrl = `http://127.0.0.1:5000/static/uploads/${selectedFile}`;
+    const fileUrl = apiUrl(`/static/uploads/${selectedFile}`);
     const isPDF = selectedFile.toLowerCase().endsWith('.pdf');
 
     if (isPDF) {
@@ -343,10 +321,10 @@ const Gallery = () => {
   const getThumbnailUrl = (filename: string) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
       // For PDFs, use the thumbnail
-      return `http://127.0.0.1:5000/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`;
+      return apiUrl(`/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`);
     }
     // For images, use the original file
-    return `http://127.0.0.1:5000/static/uploads/${filename}`;
+    return apiUrl(`/static/uploads/${filename}`);
   };
 
   const getSentimentColor = (sentiment?: string) => {
@@ -892,7 +870,7 @@ const Gallery = () => {
                       {currentAudio === image.audio_filename && (
                         <motion.audio
                           ref={audioRef}
-                          src={`http://127.0.0.1:5000/audio/${image.audio_filename}`}
+                          src={apiUrl(`/audio/${image.audio_filename}`)}
                           controls
                           className="h-6"
                           onEnded={() => setCurrentAudio(null)}

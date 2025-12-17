@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
 
 const allowedFileTypes = [
   'image/jpeg',
@@ -81,7 +82,7 @@ const aiBlock = (error: unknown) => {
         formData.append('audio', audioFile);
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/analyze-media`, {
+      const response = await fetch(apiUrl('/api/analyze-media'), {
         method: 'POST',
         body: formData,
       });
@@ -114,11 +115,25 @@ const aiBlock = (error: unknown) => {
     }
   },[aiBlock]);
 
+const MAX_SIZE:Record<string,number>={
+"image/jpeg": 10 * 1024 * 1024, 
+  "image/png": 10 * 1024 * 1024,
+  "image/webp": 10 * 1024 * 1024,
+  "image/gif": 8 * 1024 * 1024,   
+  "image/heic": 15 * 1024 * 1024,
+  "application/pdf": 25 * 1024 * 1024,
+};
 
 
   const handleImageProcessing = useCallback((file: File) => {
     if (!allowedFileTypes.includes(file.type)) {
       toast.error('Invalid file type. Please upload an image or PDF.');
+      return;
+    }
+
+    const maxSize=MAX_SIZE[file.type];
+    if(maxSize && file.size > maxSize){
+      toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
       return;
     }
 
@@ -273,7 +288,7 @@ const aiBlock = (error: unknown) => {
       }
       // Make the upload request
       const token = await clerk.session?.getToken();
-      const response = await fetch(`http://127.0.0.1:5000/api/user/upload`, {
+      const response = await fetch(apiUrl('/api/user/upload'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

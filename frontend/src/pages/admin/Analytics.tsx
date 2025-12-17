@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useClerk } from '@clerk/clerk-react';
 import {
   CalendarIcon,
   ChartBarIcon,
@@ -14,6 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { apiUrl } from "../../utils/api";
 
 // Mock data - replace with actual data from backend
 // const mockAnalytics = {
@@ -106,6 +108,7 @@ const StatCard = ({
 );
 
 const Analytics = () => {
+  const clerk = useClerk();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,8 +117,8 @@ const Analytics = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = await window.Clerk.session?.getToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000'}/api/admin/analytics`, {
+      const token = await clerk.session?.getToken();
+      const response = await fetch(apiUrl('/api/admin/analytics'), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
