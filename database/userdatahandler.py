@@ -74,7 +74,7 @@ def get_images_by_user(user_id):
     } for image in images]
 
 # Get paginated images (method)
-def __get_paginated_images_by_user(user_id, page=1, page_size=12):
+def _get_paginated_images_by_user(user_id, page=1, page_size=12):
     
     try:
         skip = (page - 1) * page_size

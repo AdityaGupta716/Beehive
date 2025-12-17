@@ -126,7 +126,7 @@ const Gallery = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [pageSize] = useState(12);
+  const [pageSize] = useState(9);
   const observerTarget = useRef<HTMLDivElement>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,60 +149,100 @@ const Gallery = () => {
     });
   }, [clerk]);
 
-  useEffect(() => {
-    const fetchUploads = async () => {
-      if (!user?.id) return;
+  // Fetch uploads with pagination support
+  const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
+    if (!user?.id) return;
+    
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       
-      try {
-        // set loading on first page, not on pagination
-        if (currentPage === 1) {
-          setLoading(true);
-        } else {
-          setLoadingMore(true);
+      const response = await authenticatedFetch(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      const sortedImages: Upload[] = data.images.sort((a: Upload, b: Upload) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      if (append) {
+        setImages(prev => [...prev, ...sortedImages]);
+      } else {
+        setImages(sortedImages);
+      }
+      
+      setTotalPages(data.totalPages || 1);
+      setTotalCount(data.total_count || 0);
+      setCurrentPage(data.page || 1);
+      
+      console.log(`Loaded page ${page}/${data.totalPages}, ${sortedImages.length} images`);
+    } catch (error) {
+      console.error('Error fetching uploads:', error);
+      if (page === 1) {
+        toast.error('Failed to fetch uploads');
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [user?.id, authenticatedFetch, pageSize]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentPage(1);
+      fetchUploads(1, false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Infinite scroll 
+  useEffect(() => {
+    if (viewMode === 'rolling') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && !loadingMore && !loading && currentPage < totalPages) {
+          const nextPage = currentPage + 1;
+          console.log(`Loading page ${nextPage}...`);
+          fetchUploads(nextPage, true);
         }
-        
-        const response = await authenticatedFetch(`/api/user/user_uploads`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          mode: 'cors'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        
-        // Sort images by date (newest first)
-        const sortedImages: Upload[] = data.images;
-        
-        // On first page, replace images; on subsequent pages, append
-        if (currentPage === 1) {
-          setImages(sortedImages);
-        } else {
-          setImages(prev => [...prev, ...sortedImages]);
-        }
-        
-        setTotalCount(data.totalCount);
-        setTotalPages(data.totalPages);
-      } catch (error) {
-        console.error('Error fetching uploads:', error);
-        if (currentPage === 1) {
-          toast.error('Failed to fetch uploads');
-        }
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
+      },
+      {
+        root: null,
+        rootMargin: '1200px',
+        threshold: 0,
+      }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
       }
     };
-
-    fetchUploads();
-  }, [user?.id, authenticatedFetch]);
+  }, [currentPage, totalPages, loadingMore, loading, fetchUploads, viewMode]);
 
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
@@ -585,7 +625,14 @@ const Gallery = () => {
     <div className="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Gallery</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Gallery</h1>
+            {totalCount > 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Showing {images.length} of {totalCount} images
+              </p>
+            )}
+          </div>
           
           <div className="flex items-center space-x-4">
             <div className="relative">
