@@ -384,6 +384,8 @@ def generate_pdf_thumbnail(pdf_path, filename):
 
     return thumbnail_path
 
+def check_owner(current_id,resource_id):
+    return str(current_id)==str(resource_id)
 
 # Edit images uploaded by the user
 @app.route("/edit/<image_id>", methods=["PATCH"])
@@ -411,7 +413,7 @@ def edit_image(image_id):
         current_user_id = request.current_user["id"]
         image_owner_id = image["user_id"]
 
-        if current_user_id != image_owner_id:
+        if not check_owner(current_user_id, image_owner_id):
             return jsonify({"error": "Unauthorized: You do not own this image."}), 403
 
         # Update the image
@@ -443,10 +445,10 @@ def delete_image_route(image_id):
         if not image:
             return jsonify({"error": "Image not found."}), 404
         # verify the ownership of user
-        current_user_id = str(request.current_user.get("id"))
-        image_owner_id = str(image.get("user_id"))
+        current_user_id = request.current_user.get("id")
+        image_owner_id = image.get("user_id")
 
-        if current_user_id != image_owner_id:
+        if not check_owner(current_user_id, image_owner_id):
             return jsonify({"error": "Unauthorized: You do not own this image."}), 403
 
         # Delete image file from upload directory
