@@ -1,6 +1,5 @@
-import base64
 from functools import wraps
-from flask import json, jsonify, request, session
+from flask import jsonify, request, session
 
 # Shared decorators to prevent circular imports
 
@@ -14,41 +13,52 @@ def login_is_required(function):
     return login_wrapper
 
 
-
 def require_admin_role(f):
+    """Enforce verified JWT with admin role (uses JWKS like require_auth).
+    
+    Requires Authorization: Bearer <JWT> header with valid signature and admin role.
+    Sets request.current_user with verified user_id and role on success.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Import here to avoid circular imports
+        from utils.clerk_auth import _verify_jwt
+        
         auth_header = request.headers.get('Authorization')
-
         if not auth_header:
             return jsonify({'error': 'Authorization header required'}), 401
 
-        # Remove 'Bearer ' prefix if present
         token = auth_header[7:] if auth_header.startswith('Bearer ') else auth_header
 
         try:
-            parts = token.split('.')
-            if len(parts) != 3:
-                return jsonify({'error': 'Invalid token format'}), 401
-
-            # Decode the payload (second part)
-            payload = parts[1]
-            payload += '=' * (-len(payload) % 4)  # pad if needed
-
-            decoded_bytes = base64.urlsafe_b64decode(payload)
-            decoded = json.loads(decoded_bytes.decode('utf-8'))
-
-            user_role = decoded.get('role', 'user')
-
-            # Allow only if admin
-            if user_role != 'admin':
+            claims = _verify_jwt(token)
+            
+            # Extract role from verified claims
+            role = (
+                (claims.get('public_metadata') or {}).get('role')
+                or claims.get('role')
+                or 'user'
+            )
+            
+            # Enforce admin role
+            if role != 'admin':
                 return jsonify({'error': 'Forbidden: admin role required'}), 403
-
-            # Continue if role matches
+            
+            # Extract user ID and set on request for downstream use
+            user_id = claims.get('sub') or claims.get('userid')
+            if not user_id:
+                return jsonify({'error': 'Invalid token: missing subject'}), 401
+            
+            request.current_user = {
+                'id': user_id,
+                'role': role,
+                'claims': claims,
+            }
+            
             return f(*args, **kwargs)
 
         except Exception as e:
-            print("Token decode error:", e)
-            return jsonify({'error': 'Invalid token'}), 401
+            # Avoid leaking verification details
+            return jsonify({'error': 'Invalid or unverifiable token'}), 401
 
     return decorated_function
