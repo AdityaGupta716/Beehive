@@ -1,70 +1,76 @@
 import os
-import requests
-import base64
 import json
+import requests
+import jwt
 from functools import wraps
 from flask import request, jsonify
+from jwt import PyJWKClient
+
+CLERK_ISSUER = os.getenv("CLERK_ISSUER")
+
+if not CLERK_ISSUER:
+    raise RuntimeError("CLERK_ISSUER environment variable is not set")
+
+JWKS_URL = f"{CLERK_ISSUER}/.well-known/jwks.json"
+jwks_client = PyJWKClient(JWKS_URL)
 
 def require_auth(f):
-    """Simple decorator to check if user is authenticated"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
+        print("Authenticating request...")
 
-        
+        auth_header = request.headers.get("Authorization")
+        # print( auth_header)
+
         if not auth_header:
-            return jsonify({'error': 'Authorization header required'}), 401
-        
-        # Remove 'Bearer ' prefix if present
-        if auth_header.startswith('Bearer '):
-            token = auth_header[7:]
-        else:
-            token = auth_header
-            
-        try:
-            print("Token to decode:", token[:50] + "..." if len(token) > 50 else token)
-            
-            # Simple JWT decode without external library
-            parts = token.split('.')
-            if len(parts) != 3:
-                return jsonify({'error': 'Invalid token format'}), 401
-            
-            # Decode the payload (second part)
-            payload = parts[1]
-            # Add padding if needed
-            payload += '=' * (4 - len(payload) % 4)
-            
-            try:
-                decoded_bytes = base64.urlsafe_b64decode(payload)
-                decoded = json.loads(decoded_bytes.decode('utf-8'))
-                print("Decoded token:", decoded)
-                
-                # Extract user ID from the token
-                user_id = decoded.get('sub') or decoded.get('userid')
-                print("Extracted user_id:", user_id)
-                
-                if not user_id:
-                    print("No user ID found in token")
-                    return jsonify({'error': 'No user ID in token'}), 401
-                
-                role = decoded.get('role', 'user')
+            return jsonify({"error": "Authorization header required"}), 401
 
-                # Token is valid, user is authenticated
-                request.current_user = {
-                    'id': user_id,
-                    'role': role
-                }
-                print(f"Authentication successful for user: {user_id} with role: {role}")
-                
-                return f(*args, **kwargs)
-                
-            except Exception as decode_error:
-                print("Token decode error:", str(decode_error))
-                return jsonify({'error': 'Invalid token format'}), 401
-            
-        except Exception as e:
-            print("General Exception:", str(e))
-            print("Exception type:", type(e).__name__)
-            return jsonify({'error': 'Authentication failed'}), 401
-    
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Invalid authorization format"}), 401
+
+        token = auth_header.split(" ", 1)[1]
+        print("ISS FROM TOKEN:", jwt.decode(token, options={"verify_signature": False})["iss"])
+        print("ISS FROM ENV  :", CLERK_ISSUER)
+
+        try:
+            print( "Fetching signing key...")
+            print(jwt.get_unverified_header(token))
+            signing_key = jwks_client.get_signing_key_from_jwt(token).key
+            print( signing_key)
+            decoded = jwt.decode(
+                token,
+                signing_key,
+                algorithms=["RS256"],
+                audience=None,
+                issuer=CLERK_ISSUER,
+                options={
+                    "verify_exp": True,
+                    "verify_signature": True,
+                },
+            )
+
+            print( decoded)
+
+            user_id = decoded.get("sub")
+            if not user_id:
+                return jsonify({"error": "Invalid token payload"}), 401
+
+            role = decoded.get("role", "user")
+
+            request.current_user = {
+                "id": user_id,
+                "role": role,
+            }
+
+            return f(*args, **kwargs)
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token expired"}), 401
+
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+
+        except Exception:
+            return jsonify({"error": "Authentication failed"}), 401
+
     return decorated_function

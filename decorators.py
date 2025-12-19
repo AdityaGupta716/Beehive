@@ -1,6 +1,5 @@
-import base64
 from functools import wraps
-from flask import json, jsonify, request, session
+from flask import jsonify, request, session
 
 # Shared decorators to prevent circular imports
 
@@ -14,41 +13,17 @@ def login_is_required(function):
     return login_wrapper
 
 
-
 def require_admin_role(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
+        user = getattr(request, "current_user", None)
 
-        if not auth_header:
-            return jsonify({'error': 'Authorization header required'}), 401
+        if not user:
+            return jsonify({"error": "Authentication required"}), 401
 
-        # Remove 'Bearer ' prefix if present
-        token = auth_header[7:] if auth_header.startswith('Bearer ') else auth_header
+        if user.get("role") != "admin":
+            return jsonify({"error": "Forbidden: admin role required"}), 403
 
-        try:
-            parts = token.split('.')
-            if len(parts) != 3:
-                return jsonify({'error': 'Invalid token format'}), 401
-
-            # Decode the payload (second part)
-            payload = parts[1]
-            payload += '=' * (-len(payload) % 4)  # pad if needed
-
-            decoded_bytes = base64.urlsafe_b64decode(payload)
-            decoded = json.loads(decoded_bytes.decode('utf-8'))
-
-            user_role = decoded.get('role', 'user')
-
-            # Allow only if admin
-            if user_role != 'admin':
-                return jsonify({'error': 'Forbidden: admin role required'}), 403
-
-            # Continue if role matches
-            return f(*args, **kwargs)
-
-        except Exception as e:
-            print("Token decode error:", e)
-            return jsonify({'error': 'Invalid token'}), 401
+        return f(*args, **kwargs)
 
     return decorated_function
