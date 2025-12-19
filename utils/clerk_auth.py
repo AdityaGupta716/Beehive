@@ -17,10 +17,9 @@ jwks_client = PyJWKClient(JWKS_URL)
 def require_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print("Authenticating request...")
+        # print("Authenticating request...")
 
         auth_header = request.headers.get("Authorization")
-        # print( auth_header)
 
         if not auth_header:
             return jsonify({"error": "Authorization header required"}), 401
@@ -29,14 +28,14 @@ def require_auth(f):
             return jsonify({"error": "Invalid authorization format"}), 401
 
         token = auth_header.split(" ", 1)[1]
-        print("ISS FROM TOKEN:", jwt.decode(token, options={"verify_signature": False})["iss"])
-        print("ISS FROM ENV  :", CLERK_ISSUER)
+        # print("ISS FROM TOKEN:", jwt.decode(token, options={"verify_signature": False})["iss"])
+        # print("ISS FROM ENV  :", CLERK_ISSUER)
 
         try:
-            print( "Fetching signing key...")
-            print(jwt.get_unverified_header(token))
+            # print( "Fetching signing key...")
             signing_key = jwks_client.get_signing_key_from_jwt(token).key
-            print( signing_key)
+            # print(signing_key)
+
             decoded = jwt.decode(
                 token,
                 signing_key,
@@ -48,8 +47,6 @@ def require_auth(f):
                     "verify_signature": True,
                 },
             )
-
-            print( decoded)
 
             user_id = decoded.get("sub")
             if not user_id:

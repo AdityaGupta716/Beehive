@@ -63,7 +63,7 @@ def get_users():
                 'image': user['image_url'],
                 'clerkId': user['id']
             })
-            print(transformed_users)
+            # print(transformed_users)
         
         return jsonify({
             'users': transformed_users,
