@@ -67,7 +67,8 @@ def require_auth(f):
         except jwt.InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
 
-        except Exception:
+        except Exception as e:
+            print(f"Authentication failed with an unexpected error: {e}")
             return jsonify({"error": "Authentication failed"}), 401
 
     return decorated_function
