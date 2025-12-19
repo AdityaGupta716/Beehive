@@ -14,31 +14,37 @@ except ImportError:
 def _verify_jwt(token: str):
     """Verify JWT using JWKS from the configured issuer and return claims.
 
-    Requires environment variable CLERK_ISSUER (e.g., https://your-clerk-domain)."""
+    Requires environment variable CLERK_ISSUER (e.g., https://your-clerk-domain).
+    Raises:
+        ValueError: If the token is invalid, unverifiable, or configuration is missing.
+    """
     issuer = os.getenv('CLERK_ISSUER')
     if not issuer:
-        raise RuntimeError('Missing CLERK_ISSUER environment variable')
+        raise ValueError('Missing CLERK_ISSUER environment variable')
 
     if jwt is None or PyJWKClient is None:
-        raise RuntimeError('PyJWT is not installed; cannot verify tokens')
+        raise ValueError('PyJWT is not installed; cannot verify tokens')
 
-    jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
+    try:
+        jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
 
-    jwk_client = PyJWKClient(jwks_url)
-    signing_key = jwk_client.get_signing_key_from_jwt(token)
+        jwk_client = PyJWKClient(jwks_url)
+        signing_key = jwk_client.get_signing_key_from_jwt(token)
 
-    # Clerk tokens typically use RS256 and include `iss`
-    claims = jwt.decode(
-        token,
-        signing_key.key,
-        algorithms=["RS256", "RS512"],
-        issuer=issuer,
-        options={
-            # Frontend tokens may not include audience we control; skip aud verification
-            'verify_aud': False
-        }
-    )
-    return claims
+        # Clerk tokens typically use RS256 and include `iss`
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256", "RS512"],
+            issuer=issuer,
+            options={
+                
+                'verify_aud': False
+            }
+        )
+        return claims
+    except jwt.PyJWTError as e:
+        raise ValueError(f'Token verification failed: {e}') from e
 
 def require_auth(f):
     """Decorator to enforce authentication via verified JWT (Clerk)."""
