@@ -12,12 +12,7 @@ except ImportError:
     PyJWKClient = None
 
 def _verify_jwt(token: str):
-    """Verify JWT using JWKS from the configured issuer and return claims.
-
-    Requires environment variable CLERK_ISSUER (e.g., https://your-clerk-domain).
-    Raises:
-        ValueError: If the token is invalid, unverifiable, or configuration is missing.
-    """
+    """Verify JWT using JWKS from the configured issuer and return claims."""
     issuer = os.getenv('CLERK_ISSUER')
     if not issuer:
         raise ValueError('Missing CLERK_ISSUER environment variable')
