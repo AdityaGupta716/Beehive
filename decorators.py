@@ -57,7 +57,7 @@ def require_admin_role(f):
             
             return f(*args, **kwargs)
 
-        except Exception as e:
+        except ValueError as e:
             # Avoid leaking verification details
             return jsonify({'error': 'Invalid or unverifiable token'}), 401
 
