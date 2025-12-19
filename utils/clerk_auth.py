@@ -1,70 +1,81 @@
 import os
-import requests
-import base64
 import json
 from functools import wraps
 from flask import request, jsonify
 
+# JWT verification
+try:
+    import jwt
+    from jwt import PyJWKClient
+except ImportError:
+    jwt = None
+    PyJWKClient = None
+
+def _verify_jwt(token: str):
+    """Verify JWT using JWKS from the configured issuer and return claims.
+
+    Requires environment variable CLERK_ISSUER (e.g., https://your-clerk-domain)."""
+    issuer = os.getenv('CLERK_ISSUER')
+    if not issuer:
+        raise RuntimeError('Missing CLERK_ISSUER environment variable')
+
+    if jwt is None or PyJWKClient is None:
+        raise RuntimeError('PyJWT is not installed; cannot verify tokens')
+
+    jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
+
+    jwk_client = PyJWKClient(jwks_url)
+    signing_key = jwk_client.get_signing_key_from_jwt(token)
+
+    # Clerk tokens typically use RS256 and include `iss`
+    claims = jwt.decode(
+        token,
+        signing_key.key,
+        algorithms=["RS256", "RS512"],
+        issuer=issuer,
+        options={
+            # Frontend tokens may not include audience we control; skip aud verification
+            'verify_aud': False
+        }
+    )
+    return claims
+
 def require_auth(f):
-    """Simple decorator to check if user is authenticated"""
+    """Decorator to enforce authentication via verified JWT (Clerk)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
 
-        
         if not auth_header:
             return jsonify({'error': 'Authorization header required'}), 401
-        
-        # Remove 'Bearer ' prefix if present
-        if auth_header.startswith('Bearer '):
-            token = auth_header[7:]
-        else:
-            token = auth_header
-            
-        try:
-            print("Token to decode:", token[:50] + "..." if len(token) > 50 else token)
-            
-            # Simple JWT decode without external library
-            parts = token.split('.')
-            if len(parts) != 3:
-                return jsonify({'error': 'Invalid token format'}), 401
-            
-            # Decode the payload (second part)
-            payload = parts[1]
-            # Add padding if needed
-            payload += '=' * (4 - len(payload) % 4)
-            
-            try:
-                decoded_bytes = base64.urlsafe_b64decode(payload)
-                decoded = json.loads(decoded_bytes.decode('utf-8'))
-                print("Decoded token:", decoded)
-                
-                # Extract user ID from the token
-                user_id = decoded.get('sub') or decoded.get('userid')
-                print("Extracted user_id:", user_id)
-                
-                if not user_id:
-                    print("No user ID found in token")
-                    return jsonify({'error': 'No user ID in token'}), 401
-                
-                role = decoded.get('role', 'user')
 
-                # Token is valid, user is authenticated
-                request.current_user = {
-                    'id': user_id,
-                    'role': role
-                }
-                print(f"Authentication successful for user: {user_id} with role: {role}")
-                
-                return f(*args, **kwargs)
-                
-            except Exception as decode_error:
-                print("Token decode error:", str(decode_error))
-                return jsonify({'error': 'Invalid token format'}), 401
-            
+        # Remove 'Bearer ' prefix if present
+        token = auth_header[7:] if auth_header.startswith('Bearer ') else auth_header
+
+        try:
+            claims = _verify_jwt(token)
+
+            user_id = claims.get('sub') or claims.get('userid')
+            if not user_id:
+                return jsonify({'error': 'Invalid token: missing subject'}), 401
+
+            # Prefer Clerk public metadata role if present
+            role = (
+                (claims.get('public_metadata') or {}).get('role')
+                or claims.get('role')
+                or 'user'
+            )
+
+            request.current_user = {
+                'id': user_id,
+                'role': role,
+                'claims': claims,
+            }
+
+            return f(*args, **kwargs)
+
         except Exception as e:
-            print("General Exception:", str(e))
-            print("Exception type:", type(e).__name__)
-            return jsonify({'error': 'Authentication failed'}), 401
-    
+            # Avoid leaking verification details, return generic auth error
+            return jsonify({'error': 'Invalid or unverifiable token'}), 401
+
     return decorated_function
