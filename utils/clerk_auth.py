@@ -75,7 +75,7 @@ def require_auth(f):
 
             return f(*args, **kwargs)
 
-        except Exception as e:
+        except ValueError as e:
             # Avoid leaking verification details, return generic auth error
             return jsonify({'error': 'Invalid or unverifiable token'}), 401
 
