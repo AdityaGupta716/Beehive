@@ -14,16 +14,51 @@ def login_is_required(function):
 
 
 def require_admin_role(f):
+    """Enforce verified JWT with admin role (uses JWKS like require_auth).
+    
+    Requires Authorization: Bearer <JWT> header with valid signature and admin role.
+    Sets request.current_user with verified user_id and role on success.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user = getattr(request, "current_user", None)
+        # Import here to avoid circular imports
+        from utils.clerk_auth import _verify_jwt
+        
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({'error': 'Authorization header required'}), 401
 
-        if not user:
-            return jsonify({"error": "Authentication required"}), 401
+        token = auth_header[7:] if auth_header.startswith('Bearer ') else auth_header
 
-        if user.get("role") != "admin":
-            return jsonify({"error": "Forbidden: admin role required"}), 403
+        try:
+            claims = _verify_jwt(token)
+            
+            # Extract role from verified claims
+            role = (
+                (claims.get('public_metadata') or {}).get('role')
+                or claims.get('role')
+                or 'user'
+            )
+            
+            # Enforce admin role
+            if role != 'admin':
+                return jsonify({'error': 'Forbidden: admin role required'}), 403
+            
+            # Extract user ID and set on request for downstream use
+            user_id = claims.get('sub') or claims.get('userid')
+            if not user_id:
+                return jsonify({'error': 'Invalid token: missing subject'}), 401
+            
+            request.current_user = {
+                'id': user_id,
+                'role': role,
+                'claims': claims,
+            }
+            
+            return f(*args, **kwargs)
 
-        return f(*args, **kwargs)
+        except ValueError as e:
+            # Avoid leaking verification details
+            return jsonify({'error': 'Invalid or unverifiable token'}), 401
 
     return decorated_function

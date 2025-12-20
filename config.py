@@ -6,6 +6,7 @@ load_dotenv()
 class Config:
     # Clerk Configuration
     CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY')
+    CLERK_ISSUER = os.getenv('CLERK_ISSUER')
     
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'beehive-secret-key')
@@ -28,4 +29,7 @@ class Config:
         """Validate that all required configuration is present"""
         if not Config.CLERK_SECRET_KEY:
             raise ValueError("Missing required environment variable: CLERK_SECRET_KEY")
+        # CLERK_ISSUER is required for JWT verification if using Clerk frontend tokens
+        if not Config.CLERK_ISSUER:
+            raise ValueError("Missing required environment variable: CLERK_ISSUER")
         return True
