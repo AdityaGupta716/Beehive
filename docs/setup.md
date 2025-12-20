@@ -77,6 +77,7 @@ Follow these steps to set up the project:
     - Log in to Clerk and go to Clerk Dashboard
     - Create a new application in Clerk
     - Copy your Publishable Key and Secret Key from Clerk and update your `.env` file.
+    - Copy Clerk Frontend API URL to CLERK_ISSUER in your `.env` file.
     - Navigate to **Configure**.
     - Select **Sessions** under **Session Management**.
     - Add the following inside **Claims** and save the changes:
