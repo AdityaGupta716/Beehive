@@ -189,7 +189,7 @@ def upload_images():
                 # Validate extension
                 original_filename = secure_filename(file.filename)
                 unique_filename = f"{ObjectId()}_{original_filename}"
-                file_ext = original_filename.rsplit(".", 1)[1].lower() if "." in original_filename else ""
+                file_ext = os.path.splitext(original_filename)[1].lstrip('.').lower()
                 if file_ext not in ALLOWED_EXTENSIONS:
                     return jsonify(
                         {
