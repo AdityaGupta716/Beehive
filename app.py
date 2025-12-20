@@ -187,8 +187,9 @@ def upload_images():
         for file in files:
             if file:
                 # Validate extension
-                filename = secure_filename(file.filename)
-                file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else ""
+                original_filename = secure_filename(file.filename)
+                unique_filename = f"{ObjectId()}_{original_filename}"
+                file_ext = original_filename.rsplit(".", 1)[1].lower() if "." in original_filename else ""
                 if file_ext not in ALLOWED_EXTENSIONS:
                     return jsonify(
                         {
@@ -209,11 +210,11 @@ def upload_images():
                         }
                     ), 400
                     
-                size_error = validate_file_size(file, file_mime_type, filename)
+                size_error = validate_file_size(file, file_mime_type, original_filename)
                 if size_error:
                     return size_error
 
-                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                filepath = os.path.join(app.config["UPLOAD_FOLDER"], unique_filename)
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
                 file.save(filepath)
 
@@ -240,7 +241,7 @@ def upload_images():
                 time_created = datetime.datetime.now()
                 save_image(
                     user_id,
-                    filename,
+                    unique_filename,
                     title,
                     description,
                     time_created,
@@ -248,12 +249,12 @@ def upload_images():
                     sentiment,
                 )
                 save_notification(
-                    user_id, username, filename, title, time_created, sentiment
+                    user_id, username, unique_filename, title, time_created, sentiment
                 )
 
                 # Generate PDF thumbnail if applicable
-                if filename.lower().endswith(".pdf"):
-                    generate_pdf_thumbnail(filepath, filename)
+                if unique_filename.lower().endswith(".pdf"):
+                    generate_pdf_thumbnail(filepath, unique_filename)
 
         return jsonify({"message": "Upload successful"}), 200
 
