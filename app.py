@@ -386,8 +386,9 @@ def generate_pdf_thumbnail(pdf_path, filename):
 
 
 
-def check_owner(current_id,resource_id):
-    return str(current_id)==str(resource_id)
+def check_owner(current_id, resource_id):
+    """Compares two IDs for equality by converting them to strings to handle type differences."""
+    return str(current_id) == str(resource_id)
 
 # Edit images uploaded by the user
 @app.route("/edit/<image_id>", methods=["PATCH"])
