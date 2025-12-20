@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 import os
 import requests
 from decorators import require_admin_role
-from utils.clerk_auth import require_auth
 from database.userdatahandler import get_images_by_user, _get_paginated_images_by_user, get_recent_uploads, get_upload_stats, get_upload_analytics, get_user_analytics
 
 # Create admin blueprint
@@ -10,7 +9,6 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 # Get all images uploaded by a user (admin access)
 @admin_bp.route('/user_uploads/<user_id>')
-@require_auth
 @require_admin_role
 def admin_user_images_show(user_id):
     try:
@@ -30,7 +28,6 @@ def admin_user_images_show(user_id):
 
 # Get all users
 @admin_bp.route('/users', methods=['GET'])
-@require_auth
 @require_admin_role
 def get_users():
     try:
@@ -81,7 +78,6 @@ def get_users():
 
 # Get only users (not admins)
 @admin_bp.route('/users/only-users', methods=['GET'])
-@require_auth
 @require_admin_role
 def get_only_users():
     try:
@@ -135,7 +131,6 @@ def get_only_users():
 
 # Get dashboard statistics and recent activity
 @admin_bp.route('/dashboard', methods=['GET'])
-@require_auth
 @require_admin_role
 def get_dashboard_data():
     try:
@@ -159,7 +154,6 @@ def get_dashboard_data():
     
 
 @admin_bp.route('/analytics', methods=['GET'])
-@require_auth
 @require_admin_role
 def get_all_analytics():
     try:
