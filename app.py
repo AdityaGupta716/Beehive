@@ -380,7 +380,9 @@ def generate_pdf_thumbnail(pdf_path, filename):
 
     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-    thumbnail_filename = filename.replace(".pdf", ".jpg")
+    # Robust filename handling
+    name, _ = os.path.splitext(filename)
+    thumbnail_filename = f"{name}.jpg"
     thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
     image.save(thumbnail_path, "JPEG")
 
