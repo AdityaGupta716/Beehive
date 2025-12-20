@@ -384,6 +384,8 @@ def generate_pdf_thumbnail(pdf_path, filename):
 
     return thumbnail_path
 
+
+
 def check_owner(current_id,resource_id):
     return str(current_id)==str(resource_id)
 
