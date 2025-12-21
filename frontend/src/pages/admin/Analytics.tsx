@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useClerk } from '@clerk/clerk-react';
 import {
   CalendarIcon,
   ChartBarIcon,
@@ -15,7 +14,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { apiUrl } from "../../utils/api";
 
 // Mock data - replace with actual data from backend
 // const mockAnalytics = {
@@ -108,7 +106,6 @@ const StatCard = ({
 );
 
 const Analytics = () => {
-  const clerk = useClerk();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,8 +114,8 @@ const Analytics = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = await clerk.session?.getToken();
-      const response = await fetch(apiUrl('/api/admin/analytics'), {
+      const token = await window.Clerk.session?.getToken();
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000'}/api/admin/analytics`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -149,8 +146,26 @@ const Analytics = () => {
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
   if (!analytics) return null;
 
-  const uploadSummary = analytics.uploads.summary;
-  const userSummary = analytics.users.summary;
+// Safe summaries with defaults
+const uploadSummary = analytics.uploads?.summary ?? {
+  total: 0,
+  voiceNotes: 0,
+  increase: 0,
+  timeframe: "This period",
+  sentimentAnalysis: {
+    positive: 0,
+    neutral: 0,
+    negative: 0,
+    custom: 0,
+  },
+};
+
+const userSummary = analytics.users?.summary ?? {
+  users: { total: 0, increase: 0 },
+  activeUsers: { total: 0, increase: 0 },
+  timeframe: "This period",
+};
+
 
   const voiceNoteDistributionData = [
     { name: "Voice Notes", value: uploadSummary.voiceNotes },
@@ -163,15 +178,18 @@ const Analytics = () => {
     { name: "Negative", value: uploadSummary.sentimentAnalysis.negative },
     { name: "Custom", value: uploadSummary.sentimentAnalysis.custom },
   ];
-
+  const uploadTrend = analytics.uploads?.trend ?? [];
+  const userTrend = analytics.users?.trend ?? [];
   const uploadTrendMap = new Map(
-    analytics.uploads.trend.map(item => [item.date, item.uploads])
-  );
+  uploadTrend.map(item => [item.date, item.uploads ?? { total: 0, increase: 0 }])
+);
 
-  const combinedTrends = analytics.users.trend.map(userTrend => ({
-    ...userTrend,
-    uploads: uploadTrendMap.get(userTrend.date) || { total: 0, increase: 0 }
-  }));
+  const combinedTrends = userTrend.map(userTrendItem => ({
+  date: userTrendItem.date,
+  users: userTrendItem.users ?? { total: 0, increase: 0 },
+  activeUsers: userTrendItem.activeUsers ?? { total: 0, increase: 0 },
+  uploads: uploadTrendMap.get(userTrendItem.date) ?? { total: 0, increase: 0 },
+}));
 
   const isAllZero = (data: { name: string; value: number }[]) =>
     data.every(item => item.value === 0);
@@ -193,8 +211,12 @@ const Analytics = () => {
           <StatCard
             title="Total Uploads"
             value={uploadSummary.total}
-            change={uploadSummary.increase}
-            timeframe={uploadSummary.timeframe}
+            change={uploadSummary.increase ?? 0}
+            timeframe={
+              uploadSummary.total === 0
+                ? "No uploads yet for this period"
+                : uploadSummary.timeframe
+            }
             icon={ChartBarIcon}
           />
           <StatCard
@@ -214,7 +236,9 @@ const Analytics = () => {
             {/* Voice Note Distribution */}
             <div className="h-80 flex items-center justify-center">
               {isAllZero(voiceNoteDistributionData) ? (
-                <span className="text-gray-400 font-medium">No data available</span>
+                <span className="text-gray-400 font-medium">
+                  No data available
+                </span>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -226,7 +250,10 @@ const Analytics = () => {
                       label
                     >
                       {voiceNoteDistributionData.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={index}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -237,13 +264,14 @@ const Analytics = () => {
             </div>
           </div>
 
-
           {/* Sentiment Analysis */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
             <h2 className="text-xl font-semibold mb-4">Sentiment Analysis</h2>
             <div className="h-80 flex items-center justify-center">
               {isAllZero(sentimentData) ? (
-                <span className="text-gray-400 font-medium">No data available</span>
+                <span className="text-gray-400 font-medium">
+                  No data available
+                </span>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -269,35 +297,103 @@ const Analytics = () => {
 
         {/* Recent Trends */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
-          <h2 className="text-xl font-semibold mb-4">Recent Trends (Last Week)</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Recent Trends (Last Week)
+          </h2>
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Period</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Users</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Active Users</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Uploads</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    Period
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    Users
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    Active Users
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    Uploads
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {combinedTrends.slice().reverse().map((trendItem) => {
-                  const growthIcon = (value: number) => value >= 0 ? (<ArrowUpIcon className="h-4 w-4 text-green-500 inline mr-1" />) : (<ArrowDownIcon className="h-4 w-4 text-red-500 inline mr-1" />);
-                  const renderCell = (total: number, increase: number) => (
-                    <div className="flex items-center">
-                      <span>{total}</span>
-                      <span className={`ml-2 flex items-center text-sm font-medium ${increase >= 0 ? 'text-green-500' : 'text-red-500'}`}>{growthIcon(increase)}{Math.abs(increase)}%</span>
-                    </div>
-                  );
-                  return (
-                    <tr key={trendItem.date} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                      <td className="py-3 px-4">{trendItem.date}</td>
-                      <td className="py-3 px-4">{renderCell(trendItem.users.total, trendItem.users.increase)}</td>
-                      <td className="py-3 px-4">{renderCell(trendItem.activeUsers.total, trendItem.activeUsers.increase)}</td>
-                      <td className="py-3 px-4">{trendItem.uploads ? renderCell(trendItem.uploads.total, trendItem.uploads.increase) : '-'}</td>
-                    </tr>
-                  );
-                })}
+                {combinedTrends.length === 0 ? (
+                  <tr>
+                    <td
+                      className="py-4 px-4 text-center text-gray-400"
+                      colSpan={4}
+                    >
+                      No trend data available for this period.
+                    </td>
+                  </tr>
+                ) : (
+                  combinedTrends
+                    .slice()
+                    .reverse()
+                    .map((trendItem) => {
+                      const growthIcon = (value: number) =>
+                        value >= 0 ? (
+                          <ArrowUpIcon className="h-4 w-4 text-green-500 inline mr-1" />
+                        ) : (
+                          <ArrowDownIcon className="h-4 w-4 text-red-500 inline mr-1" />
+                        );
+
+                      const renderCell = (
+                        total: number = 0,
+                        increase: number = 0
+                      ) => (
+                        <div className="flex items-center">
+                          <span>{total}</span>
+                          <span
+                            className={`ml-2 flex items-center text-sm font-medium ${
+                              increase >= 0 ? "text-green-500" : "text-red-500"
+                            }`}
+                          >
+                            {growthIcon(increase)}
+                            {Math.abs(increase)}%
+                          </span>
+                        </div>
+                      );
+
+                      const users = trendItem.users ?? {
+                        total: 0,
+                        increase: 0,
+                      };
+                      const activeUsers = trendItem.activeUsers ?? {
+                        total: 0,
+                        increase: 0,
+                      };
+                      const uploads = trendItem.uploads ?? {
+                        total: 0,
+                        increase: 0,
+                      };
+
+                      return (
+                        <tr
+                          key={trendItem.date}
+                          className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                        >
+                          <td className="py-3 px-4">{trendItem.date}</td>
+                          <td className="py-3 px-4">
+                            {renderCell(users.total, users.increase)}
+                          </td>
+                          <td className="py-3 px-4">
+                            {renderCell(
+                              activeUsers.total,
+                              activeUsers.increase
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {trendItem.uploads
+                              ? renderCell(uploads.total, uploads.increase)
+                              : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })
+                )}
               </tbody>
             </table>
           </div>
