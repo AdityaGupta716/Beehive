@@ -27,7 +27,7 @@ try:
     dbclient.admin.command("ping")
     logger.info("Successfully connected to MongoDB")
 except Exception as e:
-    logger.error(f"Failed to connect to MongoDB: {e}")
+    logger.error("Failed to connect to MongoDB", exc_info=True)
     logger.info("Attempting to connect to local MongoDB as fallback...")
     connectionString = "mongodb://localhost:27017/"
     dbclient = MongoClient(connectionString)
