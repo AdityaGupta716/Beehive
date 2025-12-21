@@ -14,6 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { apiUrl } from "../../utils/api";
 
 // Mock data - replace with actual data from backend
 // const mockAnalytics = {
@@ -102,6 +103,27 @@ const StatCard = ({
       </span>
       <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">{timeframe}</span>
     </div>
+  </div>
+);
+const growthIcon = (value: number) =>
+  value >= 0 ? (
+    <ArrowUpIcon className="h-4 w-4 text-green-500 inline mr-1" />
+  ) : (
+    <ArrowDownIcon className="h-4 w-4 text-red-500 inline mr-1" />
+  );
+
+
+const renderCell = (total: number = 0, increase: number = 0) => (
+  <div className="flex items-center">
+    <span>{total}</span>
+    <span
+      className={`ml-2 flex items-center text-sm font-medium ${
+        increase >= 0 ? "text-green-500" : "text-red-500"
+      }`}
+    >
+      {growthIcon(increase)}
+      {Math.abs(increase)}%
+    </span>
   </div>
 );
 
@@ -333,30 +355,6 @@ const userSummary = analytics.users?.summary ?? {
                     .slice()
                     .reverse()
                     .map((trendItem) => {
-                      const growthIcon = (value: number) =>
-                        value >= 0 ? (
-                          <ArrowUpIcon className="h-4 w-4 text-green-500 inline mr-1" />
-                        ) : (
-                          <ArrowDownIcon className="h-4 w-4 text-red-500 inline mr-1" />
-                        );
-
-                      const renderCell = (
-                        total: number = 0,
-                        increase: number = 0
-                      ) => (
-                        <div className="flex items-center">
-                          <span>{total}</span>
-                          <span
-                            className={`ml-2 flex items-center text-sm font-medium ${
-                              increase >= 0 ? "text-green-500" : "text-red-500"
-                            }`}
-                          >
-                            {growthIcon(increase)}
-                            {Math.abs(increase)}%
-                          </span>
-                        </div>
-                      );
-
                       const users = trendItem.users ?? {
                         total: 0,
                         increase: 0,
