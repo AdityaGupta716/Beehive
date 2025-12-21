@@ -35,7 +35,7 @@ class Logger:
         )
         
         # File Handler - All logs (DEBUG and above)
-        log_file = os.path.join(log_dir, f"beehive_{datetime.now().strftime('%Y%m%d')}.log")
+        log_file = os.path.join(log_dir, "beehive.log")
         file_handler = RotatingFileHandler(
             log_file,
             maxBytes=10 * 1024 * 1024,  # 10 MB
