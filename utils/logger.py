@@ -1,12 +1,19 @@
 import logging
 import os
+import threading
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
 
 class Logger:
- 
+    """
+    A unified Logger class for the Beehive application.
+    Provides production-ready logging with both file and console output.
+    Supports multiple log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    """
+    
     _instances = {}
+    _lock = threading.Lock()
     
     def __init__(self, name: str = "beehive", log_dir: str = "logs"):
         """
@@ -75,9 +82,7 @@ class Logger:
             Logger instance
         """
         if name not in Logger._instances:
-            with Logger._lock:
-                if name not in Logger._instances:
-                    Logger._instances[name] = Logger(name, log_dir)
+            Logger._instances[name] = Logger(name, log_dir)
         return Logger._instances[name]
     
     def debug(self, message: str):
