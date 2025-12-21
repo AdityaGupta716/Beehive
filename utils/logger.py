@@ -75,7 +75,9 @@ class Logger:
             Logger instance
         """
         if name not in Logger._instances:
-            Logger._instances[name] = Logger(name, log_dir)
+            with Logger._lock:
+                if name not in Logger._instances:
+                    Logger._instances[name] = Logger(name, log_dir)
         return Logger._instances[name]
     
     def debug(self, message: str):
