@@ -3,8 +3,9 @@ import os
 import requests
 from decorators import require_admin_role
 from database.userdatahandler import get_images_by_user, _get_paginated_images_by_user, get_recent_uploads, get_upload_stats, get_upload_analytics, get_user_analytics
+from utils.logger import Logger
 
-# Create admin blueprint
+logger = Logger.get_logger("adminroutes")
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 # Get all images uploaded by a user (admin access)
@@ -73,7 +74,7 @@ def get_users():
         })
         
     except Exception as e:
-        print(f"Error fetching users: {str(e)}")
+        logger.error(f"Error fetching users: {str(e)}")
         return jsonify({'error': 'Failed to fetch users'}), 500
 
 # Get only users (not admins)
@@ -126,7 +127,7 @@ def get_only_users():
         })
         
     except Exception as e:
-        print(f"Error fetching only users: {str(e)}")
+        logger.error(f"Error fetching only users: {str(e)}")
         return jsonify({'error': 'Failed to fetch only users'}), 500
 
 # Get dashboard statistics and recent activity
@@ -149,7 +150,7 @@ def get_dashboard_data():
         })
         
     except Exception as e:
-        print(f"Error fetching dashboard data: {str(e)}")
+        logger.error(f"Error fetching dashboard data: {str(e)}")
         return jsonify({'error': 'Failed to fetch dashboard data'}), 500
     
 
@@ -173,5 +174,5 @@ def get_all_analytics():
         return jsonify(combined_data), 200
 
     except Exception as e:
-        print(f"Error fetching combined analytics: {str(e)}")
+        logger.error(f"Error fetching combined analytics: {str(e)}")
         return jsonify({"error": "Failed to fetch analytics data"}), 500

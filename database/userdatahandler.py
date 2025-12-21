@@ -5,6 +5,9 @@ from flask import session
 from database import databaseConfig
 import requests
 import os
+from utils.logger import Logger
+
+logger = Logger.get_logger("userdatahandler")
 
 beehive_image_collection = databaseConfig.get_beehive_image_collection()
 beehive_notification_collection = databaseConfig.get_beehive_notification_collection()
@@ -106,7 +109,7 @@ def _get_paginated_images_by_user(user_id, page=1, page_size=12):
             'totalPages': (total_count + page_size - 1) // page_size if page_size > 0 else 0
         }
     except Exception as e:
-        print(f"Error getting paginated images: {str(e)}")
+        logger.error(f"Error getting paginated images: {str(e)}")
         return {
             'images': [],
             'total_count': 0,
@@ -181,7 +184,7 @@ def get_upload_stats():
             'totalMedia': total_images + total_voice_notes
         }
     except Exception as e:
-        print(f"Error getting upload stats: {str(e)}")
+        logger.error(f"Error getting upload stats: {str(e)}")
         return {
             'totalImages': 0,
             'totalVoiceNotes': 0,
@@ -232,7 +235,7 @@ def get_recent_uploads(limit=10):
             })
         return uploads_list
     except Exception as e:
-        print(f"Error getting recent uploads: {str(e)}")
+        logger.error(f"Error getting recent uploads: {str(e)}")
         return []
 
 
@@ -329,7 +332,7 @@ def get_upload_analytics(trend_days=7):
         return {'summary': summary, 'trend': trend}
 
     except Exception as e:
-        print(f"Error getting upload analytics: {e}")
+        logger.error(f"Error getting upload analytics: {e}")
         return None
 
 def _fetch_clerk_users(params):
@@ -412,5 +415,5 @@ def get_user_analytics(trend_days=7):
         return {'summary': summary, 'trend': trend}
 
     except Exception as e:
-        print(f"An error occurred in user analytics: {e}")
+        logger.error(f"Error in user analytics: {e}")
         return None

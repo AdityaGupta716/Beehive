@@ -10,6 +10,7 @@ import traceback
 from datetime import timedelta
 from functools import wraps
 from utils.sanitize import sanitize_text
+from utils.logger import logger as app_logger
 
 import bcrypt
 import fitz
@@ -265,8 +266,8 @@ def upload_images():
 
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key or api_key == "your_google_api_key_here":
-    print(
-        "Warning: GOOGLE_API_KEY not properly configured. AI features will be disabled."
+    app_logger.warning(
+        "GOOGLE_API_KEY not properly configured. AI features will be disabled."
     )
     genai_configured = False
 else:
@@ -277,10 +278,10 @@ else:
             if "generateContent" in m.supported_generation_methods:
                 pass
         genai_configured = True
-        print("Google Generative AI configured successfully")
+        app_logger.info("Google Generative AI configured successfully")
     except Exception as e:
-        print(f"Warning: Failed to configure Google Generative AI: {e}")
-        print("AI features will be disabled.")
+        app_logger.warning(f"Failed to configure Google Generative AI: {e}")
+        app_logger.warning("AI features will be disabled.")
         genai_configured = False
 
 
@@ -332,7 +333,7 @@ def analyze_media():
             error_message = (
                 f"Response was blocked. Feedback: {response.prompt_feedback}"
             )
-            print(f"⚠️ {error_message}")
+            app_logger.warning(f"AI Response blocked: {error_message}")
             return jsonify({"error": "Content blocked by safety filters"}), 400
 
         raw_text = response.text
