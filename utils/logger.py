@@ -46,7 +46,7 @@ class Logger:
         self.logger.addHandler(file_handler)
         
         # Error Log Handler - Only errors and critical (separate file)
-        error_log_file = os.path.join(log_dir, f"beehive_errors_{datetime.now().strftime('%Y%m%d')}.log")
+        error_log_file = os.path.join(log_dir, "beehive_errors.log")
         error_handler = RotatingFileHandler(
             error_log_file,
             maxBytes=10 * 1024 * 1024,
