@@ -170,7 +170,7 @@ def validate_file_size(file, mime_type, filename):
 def _build_audio_basename(title: str) -> str:
     safe_title = secure_filename(title) or "audio"
     # Keep filenames short and predictable
-    return (safe_title or "audio")[:80]
+    return safe_title[:80]
 
 
 def _audio_size_error():
