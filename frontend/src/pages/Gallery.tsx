@@ -814,7 +814,7 @@ const Gallery = () => {
               >
                 <motion.div
                   className={`relative cursor-pointer group ${
-                    viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'w-full h-52'
+                    viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'w-full aspect-[4/3]'
                   }`}
                   onClick={() => handleFileClick(image.filename)}
                   whileHover={{ scale: 1.05 }}
