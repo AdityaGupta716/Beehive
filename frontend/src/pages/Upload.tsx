@@ -41,6 +41,7 @@ const Upload = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false); 
   const [isDragActive, setIsDragActive] = useState(false); 
@@ -48,6 +49,16 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+    if (!isRecording) return;
+
+    const interval = window.setInterval(() => {
+      setRecordingTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   // Block restricted contents
 const aiBlock = (error: unknown) => {
@@ -217,6 +228,8 @@ const MAX_SIZE:Record<string,number>={
 
       mediaRecorder.start();
       setIsRecording(true);
+      setRecordingTime(0);
+      
     } catch (error) {
       console.error('Error accessing microphone:', error);
       toast.error('Error accessing microphone');
@@ -466,6 +479,16 @@ const MAX_SIZE:Record<string,number>={
                     </>
                   )}
                 </button>
+
+                {isRecording && (
+                  <span className="text-sm font-mono text-red-600 dark:text-red-400">
+                    ⏺ {Math.floor(recordingTime / 60)
+                      .toString()
+                      .padStart(2, '0')}
+                    :
+                    {(recordingTime % 60).toString().padStart(2, '0')}
+                  </span>
+                )}
 
                 {selectedVoiceNote && (
                   <div className="flex items-center gap-2">
