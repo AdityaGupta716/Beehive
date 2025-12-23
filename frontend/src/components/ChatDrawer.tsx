@@ -56,15 +56,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Poll for messages
-  useEffect(() => {
-    if (!userId || (userRole === 'admin' && !adminTargetId)) return;
-    fetchMessages();
-    const interval = window.setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line
-  }, [userId, userRole, adminTargetId, fetchMessages]);
-
   const fetchMessages = useCallback(async () => {
     try {
       const id = userRole === 'admin' ? adminTargetId : userId;
@@ -82,6 +73,14 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
       console.error("Failed to fetch messages: ", error);
     }
   }, [userRole, adminTargetId, userId, clerk]);
+
+  // Poll for messages
+  useEffect(() => {
+    if (!userId || (userRole === 'admin' && !adminTargetId)) return;
+    fetchMessages();
+    const interval = window.setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [userId, userRole, adminTargetId, fetchMessages]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
