@@ -185,6 +185,9 @@ def upload_images():
 
         audio_filename = None
 
+        # Prefer the global MIME detector to avoid per-file instantiation; fall back if unavailable
+        mime_detector = MAGIC if MAGIC is not None else magic.Magic(mime=True)
+
         for file in files:
             if file:
                 # Validate extension
@@ -201,8 +204,7 @@ def upload_images():
                 file.stream.seek(0)
                 file_header = file.stream.read(2048)
                 file.stream.seek(0)
-                mime = magic.Magic(mime=True)
-                file_mime_type = mime.from_buffer(file_header)
+                file_mime_type = mime_detector.from_buffer(file_header)
 
                 if file_mime_type not in ALLOWED_MIME_TYPES:
                     return jsonify(
