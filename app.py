@@ -1,4 +1,5 @@
 import base64
+import binascii
 import datetime
 import json
 import logging
@@ -75,6 +76,10 @@ ALLOWED_MIME_TYPES = {
     "application/pdf",
     "image/avif",
 }
+
+ALLOWED_AUDIO_MIME_TYPES = {"audio/wav", "audio/x-wav"}
+MAX_AUDIO_FILE_SIZE = 6 * 1024 * 1024  # We can set the size required to Beehive 
+AUDIO_DATA_URL_RE = re.compile(r"^data:(?P<mime>[-\w.+/]+);base64,(?P<data>[A-Za-z0-9+/=\r\n]+)$")
 
 # Initialized global MIME detector
 try:
@@ -161,6 +166,92 @@ def validate_file_size(file, mime_type, filename):
         )
     return None
 
+
+def _build_audio_basename(title: str) -> str:
+    safe_title = secure_filename(title) or "audio"
+    # Keep filenames short and predictable
+    return safe_title[:80]
+
+
+def _audio_size_error():
+    return (
+        jsonify(
+            {
+                "error": f"Audio exceeds max size limit ({MAX_AUDIO_FILE_SIZE // (1024 * 1024)}MB)",
+            }
+        ),
+        413,
+    )
+
+
+def _validate_audio_size(size_bytes):
+    if size_bytes > MAX_AUDIO_FILE_SIZE:
+        return _audio_size_error()
+    return None
+
+
+def _decode_audio_data(audio_data):
+    """
+    Validates and decodes a base64 audio data URL.
+    Returns (bytes, None) when valid or (None, response) when invalid.
+    """
+    match = AUDIO_DATA_URL_RE.match(audio_data.strip()) if audio_data else None
+    if not match:
+        return None, (jsonify({"error": "Invalid audio data URL format"}), 400)
+
+    mime_type = match.group("mime").lower()
+    if mime_type not in ALLOWED_AUDIO_MIME_TYPES:
+        return None, (jsonify({"error": "Unsupported audio MIME type"}), 400)
+
+    b64_payload = match.group("data").strip()
+    estimated_size = (len(b64_payload) * 3) // 4
+    size_error = _validate_audio_size(estimated_size)
+    if size_error:
+        return None, size_error
+
+    try:
+        audio_binary = base64.b64decode(b64_payload, validate=True)
+    except (binascii.Error, ValueError):
+        return None, (jsonify({"error": "Audio data is not valid base64"}), 400)
+
+    size_error = _validate_audio_size(len(audio_binary))
+    if size_error:
+        return None, size_error
+
+    if mime_type.startswith("audio/wav") and not (
+        audio_binary.startswith(b"RIFF") and audio_binary[8:12] == b"WAVE"
+    ):
+        return None, (jsonify({"error": "Audio content validation failed"}), 400)
+
+    return audio_binary, None
+
+
+def _validate_audio_file_upload(audio_file):
+    if not audio_file or not audio_file.filename:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    filename = secure_filename(audio_file.filename)
+    if not filename:
+        return jsonify({"error": "Invalid audio filename"}), 400
+
+    header = audio_file.stream.read(2048)
+    audio_file.stream.seek(0)
+    detected_mime = (MAGIC.from_buffer(header) if MAGIC else None) or (
+        audio_file.mimetype.lower() if audio_file.mimetype else ""
+    )
+
+    if detected_mime not in ALLOWED_AUDIO_MIME_TYPES:
+        return jsonify({"error": "Audio file type not allowed"}), 400
+
+    audio_file.stream.seek(0, os.SEEK_END)
+    size = audio_file.stream.tell()
+    audio_file.stream.seek(0)
+    size_error = _validate_audio_size(size)
+    if size_error:
+        return size_error
+
+    return None
+
 # Upload images
 @app.route("/api/user/upload", methods=["POST"])
 @require_auth
@@ -184,6 +275,7 @@ def upload_images():
             return jsonify({"error": "Title and description are required"}), 400
 
         audio_filename = None
+        safe_audio_basename = _build_audio_basename(title)
 
         for file in files:
             if file:
@@ -221,17 +313,25 @@ def upload_images():
 
                 # Handle audio upload (either base64 or file)
                 if audio_data:
-                    audio_filename = f"{secure_filename(title)}.wav"
+                    audio_binary, audio_error = _decode_audio_data(audio_data)
+                    if audio_error:
+                        return audio_error
+
+                    audio_filename = f"{safe_audio_basename}_{ObjectId()}.wav"
                     audio_path = os.path.join(
                         app.config["UPLOAD_FOLDER"], audio_filename
                     )
                     os.makedirs(os.path.dirname(audio_path), exist_ok=True)
-                    audio_binary = base64.b64decode(audio_data.split(",")[1])
                     with open(audio_path, "wb") as f:
                         f.write(audio_binary)
 
                 elif audio_file:
-                    audio_filename = secure_filename(audio_file.filename)
+                    audio_error = _validate_audio_file_upload(audio_file)
+                    if audio_error:
+                        return audio_error
+
+                    audio_ext = pathlib.Path(audio_file.filename).suffix.lower() or ".wav"
+                    audio_filename = f"{safe_audio_basename}_{ObjectId()}{audio_ext}"
                     audio_path = os.path.join(
                         app.config["UPLOAD_FOLDER"], audio_filename
                     )
