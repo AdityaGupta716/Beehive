@@ -48,7 +48,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
         setSelectedUser(data.users[0]);
         setAdminTargetId(data.users[0].id);
       }
-    } catch {}
+    } catch (error) {
+      console.error("Failed to fetch UserList: ",error);
+    }
   };
 
   // Scroll to bottom on new messages
