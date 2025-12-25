@@ -622,7 +622,7 @@ def user_images_show():
 
 
 @app.route("/api/admin/notifications", methods=["GET"])
-@require_auth
+@require_admin_role
 def get_admin_notifications():
     try:
         notification_collection = get_beehive_notification_collection()
@@ -660,7 +660,7 @@ def get_admin_notifications():
 
 
 @app.route("/api/admin/notifications/mark_seen", methods=["POST"])
-@require_auth
+@require_admin_role
 def mark_selected_notifications_seen():
     try:
         notification_collection = get_beehive_notification_collection()
