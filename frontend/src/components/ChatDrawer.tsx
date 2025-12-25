@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback} from 'react';
 import { useClerk } from '@clerk/clerk-react';
 import { apiUrl } from '../utils/api';
 
@@ -20,7 +20,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pollInterval, setPollInterval] = useState<number | null>(null);
   const [adminTargetId, setAdminTargetId] = useState(targetUserId || '');
   const [userList, setUserList] = useState<ChatUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
@@ -57,19 +56,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Poll for messages
-  useEffect(() => {
-    const id = userRole === 'admin' ? adminTargetId : userId;
-    if (!userId || (userRole === 'admin' && !adminTargetId)) return;
-    fetchMessages();
-    if (pollInterval) clearInterval(pollInterval);
-    const interval = window.setInterval(fetchMessages, 5000);
-    setPollInterval(interval);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line
-  }, [userId, userRole, adminTargetId]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const id = userRole === 'admin' ? adminTargetId : userId;
       if (!id) return;
@@ -82,8 +69,18 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ userId, userRole, targetUserId,
       if (!res.ok) return;
       const data = await res.json();
       setMessages(data.messages || []);
-    } catch {}
-  };
+    } catch (error) {
+      console.error("Failed to fetch messages: ", error);
+    }
+  }, [userRole, adminTargetId, userId, clerk]);
+
+  // Poll for messages
+  useEffect(() => {
+    if (!userId || (userRole === 'admin' && !adminTargetId)) return;
+    fetchMessages();
+    const interval = window.setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [userId, userRole, adminTargetId, fetchMessages]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
