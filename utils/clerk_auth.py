@@ -1,6 +1,9 @@
 import os
 import json
+import threading
 from functools import wraps
+from typing import Dict
+
 from flask import request, jsonify
 
 # JWT verification
@@ -12,14 +15,20 @@ except ImportError:
     PyJWKClient = None
 
 # Cache for PyJWKClient instances keyed by issuer URL
-_jwk_client_cache: dict = {}
+_jwk_client_cache: Dict[str, "PyJWKClient"] = {}
+_jwk_client_cache_lock = threading.Lock()
+JWKS_LIFESPAN_SECONDS = 3600
 
 def _get_jwk_client(issuer: str):
     """Get or create a cached PyJWKClient for the given issuer."""
-    if issuer not in _jwk_client_cache:
-        jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
-        # PyJWKClient caches keys internally; lifespan controls how long before refresh
-        _jwk_client_cache[issuer] = PyJWKClient(jwks_url, lifespan=3600)
+    if issuer in _jwk_client_cache:
+        return _jwk_client_cache[issuer]
+    
+    with _jwk_client_cache_lock:
+        if issuer not in _jwk_client_cache:
+            jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
+            # PyJWKClient caches keys internally; lifespan controls how long before refresh
+            _jwk_client_cache[issuer] = PyJWKClient(jwks_url, lifespan=JWKS_LIFESPAN_SECONDS)
     return _jwk_client_cache[issuer]
 
 def _verify_jwt(token: str):
