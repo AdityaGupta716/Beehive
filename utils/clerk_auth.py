@@ -11,6 +11,17 @@ except ImportError:
     jwt = None
     PyJWKClient = None
 
+# Cache for PyJWKClient instances keyed by issuer URL
+_jwk_client_cache: dict = {}
+
+def _get_jwk_client(issuer: str):
+    """Get or create a cached PyJWKClient for the given issuer."""
+    if issuer not in _jwk_client_cache:
+        jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
+        # PyJWKClient caches keys internally; lifespan controls how long before refresh
+        _jwk_client_cache[issuer] = PyJWKClient(jwks_url, lifespan=3600)
+    return _jwk_client_cache[issuer]
+
 def _verify_jwt(token: str):
     """Verify JWT using JWKS from the configured issuer and return claims."""
     issuer = os.getenv('CLERK_ISSUER')
@@ -21,9 +32,7 @@ def _verify_jwt(token: str):
         raise ValueError('PyJWT is not installed; cannot verify tokens')
 
     try:
-        jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
-
-        jwk_client = PyJWKClient(jwks_url)
+        jwk_client = _get_jwk_client(issuer)
         signing_key = jwk_client.get_signing_key_from_jwt(token)
 
         # Clerk tokens typically use RS256 and include `iss`
