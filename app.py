@@ -386,6 +386,7 @@ else:
 
 
 @app.route("/api/analyze-media", methods=["POST"])
+@require_auth
 def analyze_media():
     image_file = request.files.get("image")
     audio_file = request.files.get("audio")
