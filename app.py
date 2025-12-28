@@ -386,7 +386,9 @@ else:
 
 
 @app.route("/api/analyze-media", methods=["POST"])
+@require_auth
 def analyze_media():
+    user_id = request.current_user["id"]
     image_file = request.files.get("image")
     audio_file = request.files.get("audio")
 
@@ -446,20 +448,20 @@ def analyze_media():
                 parsed = json.loads(json_match.group())
                 # Ensure required keys exist
                 if not all(k in parsed for k in ("title", "description", "sentiment")):
-                    logging.error(f"AI JSON missing keys: {parsed}")
+                    logging.error(f"User {user_id}: AI JSON missing keys: {parsed}")
                     return jsonify(
                         {"error": "AI response JSON missing required keys"}
                     ), 500
                 return jsonify(parsed), 200
             except Exception as e:
-                logging.error(f"Error parsing AI JSON: {e}\nRaw response: {raw_text}")
+                logging.error(f"User {user_id}: Error parsing AI JSON: {e}\nRaw response: {raw_text}")
                 return jsonify({"error": "Failed to parse AI response JSON"}), 500
         else:
-            logging.error(f"No JSON found in AI response: {raw_text}")
+            logging.error(f"User {user_id}: No JSON found in AI response: {raw_text}")
             return jsonify({"error": "No JSON object found in AI response"}), 500
 
     except Exception as e:
-        logging.error(f"analyze_media error: {e}\n{traceback.format_exc()}")
+        logging.error(f"User {user_id}: analyze_media error: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"Error analyzing media: {str(e)}"}), 500
 
 
