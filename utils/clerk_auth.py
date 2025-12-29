@@ -37,6 +37,10 @@ def _verify_jwt(token: str):
     if not issuer:
         raise ValueError('Missing CLERK_ISSUER environment variable')
 
+    audience = os.getenv('CLERK_AUDIENCE')
+    if not audience:
+        raise ValueError('Missing CLERK_AUDIENCE environment variable')
+
     if jwt is None or PyJWKClient is None:
         raise ValueError('PyJWT is not installed; cannot verify tokens')
 
@@ -50,9 +54,9 @@ def _verify_jwt(token: str):
             signing_key.key,
             algorithms=["RS256", "RS512"],
             issuer=issuer,
+            audience=audience,
             options={
-                
-                'verify_aud': False
+                'verify_aud': True
             }
         )
         return claims
