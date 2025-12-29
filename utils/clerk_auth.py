@@ -56,9 +56,6 @@ def _verify_jwt(token: str):
             algorithms=["RS256", "RS512"],
             issuer=CLERK_ISSUER,
             audience=CLERK_AUDIENCE,
-            options={
-                'verify_aud': True
-            }
         )
         return claims
     except jwt.PyJWTError as e:
