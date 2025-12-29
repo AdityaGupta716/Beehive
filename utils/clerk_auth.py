@@ -19,6 +19,15 @@ _jwk_client_cache: Dict[str, "PyJWKClient"] = {}
 _jwk_client_cache_lock = threading.Lock()
 JWKS_LIFESPAN_SECONDS = 3600
 
+# Validate required environment variables at startup
+CLERK_ISSUER = os.getenv('CLERK_ISSUER')
+if not CLERK_ISSUER:
+    raise RuntimeError('Missing required CLERK_ISSUER environment variable')
+
+CLERK_AUDIENCE = os.getenv('CLERK_AUDIENCE')
+if not CLERK_AUDIENCE:
+    raise RuntimeError('Missing required CLERK_AUDIENCE environment variable')
+
 def _get_jwk_client(issuer: str):
     """Get or create a cached PyJWKClient for the given issuer."""
     if issuer in _jwk_client_cache:
@@ -33,19 +42,11 @@ def _get_jwk_client(issuer: str):
 
 def _verify_jwt(token: str):
     """Verify JWT using JWKS from the configured issuer and return claims."""
-    issuer = os.getenv('CLERK_ISSUER')
-    if not issuer:
-        raise ValueError('Missing CLERK_ISSUER environment variable')
-
-    audience = os.getenv('CLERK_AUDIENCE')
-    if not audience:
-        raise ValueError('Missing CLERK_AUDIENCE environment variable')
-
     if jwt is None or PyJWKClient is None:
         raise ValueError('PyJWT is not installed; cannot verify tokens')
 
     try:
-        jwk_client = _get_jwk_client(issuer)
+        jwk_client = _get_jwk_client(CLERK_ISSUER)
         signing_key = jwk_client.get_signing_key_from_jwt(token)
 
         # Clerk tokens typically use RS256 and include `iss`
@@ -53,8 +54,8 @@ def _verify_jwt(token: str):
             token,
             signing_key.key,
             algorithms=["RS256", "RS512"],
-            issuer=issuer,
-            audience=audience,
+            issuer=CLERK_ISSUER,
+            audience=CLERK_AUDIENCE,
             options={
                 'verify_aud': True
             }
