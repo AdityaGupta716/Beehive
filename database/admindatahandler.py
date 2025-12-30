@@ -21,8 +21,9 @@ def create_admin(name: str, email: str, google_id: str, accountcreatedtime: date
         return result.inserted_id
     except PyMongoError:
         logger.error(
-            "Failed to create admin for google_id=%s",
+            "Failed to create admin for google_id=%s, email=%s",
             google_id,
+            email,
             exc_info=True
         )
         raise
