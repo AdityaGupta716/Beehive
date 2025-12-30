@@ -62,12 +62,12 @@ const Upload = () => {
 
   // Block restricted contents
 const aiBlock = (error: unknown): boolean => {
-  const message = error instanceof Error ? error.message : '';
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
   const isBlocked = message.includes('blocked') || message.includes('restricted');
 
   if (isBlocked) {
     toast.error("This media couldn't be analyzed due to content restrictions.");
-    handleRemoveFile();
+    handleRemoveAllMedia();
   }
 
   return isBlocked;
@@ -78,6 +78,21 @@ const aiBlock = (error: unknown): boolean => {
     setSelectedImage(null);
     setImagePreview(null);
     setIsPreviewing(false);
+  };
+
+  const handleRemoveAllMedia = () => {
+    // Clear image
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsPreviewing(false);
+
+    // Clear audio
+    setSelectedVoiceNote(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
   };
 
  // AI Analysis Function
