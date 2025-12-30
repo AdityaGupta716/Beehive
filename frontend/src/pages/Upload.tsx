@@ -49,42 +49,20 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
-
-  // Cleanup Blob URL to prevent memory leak
-  useEffect(() => {
-    return () => {
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
-      }
-    };
-  }, []);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Create and manage Blob URL for selected voice note
   useEffect(() => {
-    if (selectedVoiceNote) {
-      // Revoke previous URL if it exists
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-      }
-      // Create new Blob URL
-      audioUrlRef.current = URL.createObjectURL(selectedVoiceNote);
-    } else {
-      // Cleanup when voice note is removed
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
-      }
+    if (!selectedVoiceNote) {
+      setAudioUrl(null);
+      return undefined;
     }
 
-    return () => {
-      // Cleanup on component unmount or when selectedVoiceNote changes
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
-      }
-    };
+    const objectUrl = URL.createObjectURL(selectedVoiceNote);
+    setAudioUrl(objectUrl);
+
+    // Revoke object URL on cleanup to prevent leaks
+    return () => URL.revokeObjectURL(objectUrl);
   }, [selectedVoiceNote]);
 
     useEffect(() => {
@@ -551,7 +529,7 @@ const MAX_SIZE:Record<string,number>={
                     </button>
                     <audio
                       ref={audioRef}
-                      src={audioUrlRef.current || ''}
+                      src={audioUrl || ''}
                       className="hidden"
                       onEnded={() => setIsPlaying(false)}
                       onError={(e) => {
