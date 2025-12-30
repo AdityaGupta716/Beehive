@@ -49,6 +49,43 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  // Cleanup Blob URL to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Create and manage Blob URL for selected voice note
+  useEffect(() => {
+    if (selectedVoiceNote) {
+      // Revoke previous URL if it exists
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+      // Create new Blob URL
+      audioUrlRef.current = URL.createObjectURL(selectedVoiceNote);
+    } else {
+      // Cleanup when voice note is removed
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+    }
+
+    return () => {
+      // Cleanup on component unmount or when selectedVoiceNote changes
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+    };
+  }, [selectedVoiceNote]);
 
     useEffect(() => {
     if (!isRecording) return;
@@ -514,7 +551,7 @@ const MAX_SIZE:Record<string,number>={
                     </button>
                     <audio
                       ref={audioRef}
-                      src={selectedVoiceNote ? URL.createObjectURL(selectedVoiceNote) : ''}
+                      src={audioUrlRef.current || ''}
                       className="hidden"
                       onEnded={() => setIsPlaying(false)}
                       onError={(e) => {
