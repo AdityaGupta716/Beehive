@@ -85,6 +85,11 @@ const aiBlock = (error: unknown) => {
     const analysisToast = toast.loading('AI is analyzing your media...');
 
     try {
+      const token = await clerk.session?.getToken();
+      if (!token) {
+        throw new Error('User not authenticated');
+      }
+
       const formData = new FormData();
       if (imageFile) {
         formData.append('image', imageFile);
@@ -95,7 +100,11 @@ const aiBlock = (error: unknown) => {
 
       const response = await fetch(apiUrl('/api/analyze-media'), {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -124,7 +133,7 @@ const aiBlock = (error: unknown) => {
     } finally {
       setIsAnalyzing(false);
     }
-  },[aiBlock]);
+  },[aiBlock, clerk]);
 
 const MAX_SIZE:Record<string,number>={
 "image/jpeg": 10 * 1024 * 1024, 
