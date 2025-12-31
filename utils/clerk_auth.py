@@ -24,9 +24,6 @@ CLERK_ISSUER = os.getenv('CLERK_ISSUER')
 if not CLERK_ISSUER:
     raise RuntimeError('Missing required CLERK_ISSUER environment variable')
 
-CLERK_AUDIENCE = os.getenv('CLERK_AUDIENCE')
-if not CLERK_AUDIENCE:
-    raise RuntimeError('Missing required CLERK_AUDIENCE environment variable')
 
 def _get_jwk_client(issuer: str):
     """Get or create a cached PyJWKClient for the given issuer."""
