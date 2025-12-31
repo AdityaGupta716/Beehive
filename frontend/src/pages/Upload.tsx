@@ -61,21 +61,21 @@ const Upload = () => {
   }, [isRecording]);
 
   // Block restricted contents
-const aiBlock = (error: unknown) => {
-  const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-  
-  const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
-  if (isBlocked) {
-    toast.error("This image couldn't be analyzed due to content restrictions and was not uploaded.");
-    handleRemoveFile();
-  }
-};
-
- const handleRemoveFile = () => {
+  const handleRemoveFile = useCallback(() => {
     setSelectedImage(null);
     setImagePreview(null);
     setIsPreviewing(false);
-  };
+  }, []);
+
+  const aiBlock = useCallback((error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+  
+    const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
+    if (isBlocked) {
+      toast.error("This image couldn't be analyzed due to content restrictions and was not uploaded.");
+      handleRemoveFile();
+    }
+  }, [handleRemoveFile]);
 
  // AI Analysis Function
   const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
