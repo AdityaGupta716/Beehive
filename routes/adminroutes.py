@@ -23,9 +23,8 @@ def admin_user_images_show(user_id):
         result = _get_paginated_images_by_user(user_id, page, page_size)
         return jsonify(result)
     except Exception as e:
-        return jsonify({
-            'error': str(e)
-        }), 500
+        logger.error(f"Error fetching user uploads", exc_info=True)
+        return jsonify({'error': 'Failed to fetch user uploads'}), 500
 
 # Get all users
 @admin_bp.route('/users', methods=['GET'])
