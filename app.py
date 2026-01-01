@@ -84,8 +84,15 @@ AUDIO_DATA_URL_RE = re.compile(r"^data:(?P<mime>[-\w.+/]+);base64,(?P<data>[A-Za
 # Initialized global MIME detector
 try:
     MAGIC = magic.Magic(mime=True)
-except Exception:
+except Exception as e:
     MAGIC = None
+    app_logger.error(
+        "MIME detection unavailable: failed to initialize libmagic. Install system libmagic (e.g., `apt-get install libmagic1` or equivalent) and python-magic. Error: %s",
+        e,
+    )
+
+# Fallback detector initialized lazily if the global MAGIC is unavailable
+_FALLBACK_MAGIC = None
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(
@@ -277,6 +284,22 @@ def upload_images():
         audio_filename = None
         safe_audio_basename = _build_audio_basename(title)
 
+        # Prefer the global MIME detector to avoid per-file instantiation; fall back lazily if unavailable
+        if MAGIC is not None:
+            mime_detector = MAGIC
+        else:
+            global _FALLBACK_MAGIC
+            if _FALLBACK_MAGIC is None:
+                try:
+                    _FALLBACK_MAGIC = magic.Magic(mime=True)
+                except Exception as e:
+                    app_logger.error(
+                        "MIME detection unavailable: libmagic missing or misconfigured. Install system libmagic and python-magic. Error: %s",
+                        e,
+                    )
+                    return jsonify({"error": "Server MIME detection unavailable; contact administrator."}), 500
+            mime_detector = _FALLBACK_MAGIC
+
         for file in files:
             if file:
                 # Validate extension
@@ -293,8 +316,7 @@ def upload_images():
                 file.stream.seek(0)
                 file_header = file.stream.read(2048)
                 file.stream.seek(0)
-                mime = magic.Magic(mime=True)
-                file_mime_type = mime.from_buffer(file_header)
+                file_mime_type = mime_detector.from_buffer(file_header)
 
                 if file_mime_type not in ALLOWED_MIME_TYPES:
                     return jsonify(

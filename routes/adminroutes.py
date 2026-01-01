@@ -39,6 +39,9 @@ def get_users():
         
         # Get users from Clerk using REST API
         clerk_api_key = os.getenv('CLERK_SECRET_KEY')
+        if not clerk_api_key:
+            logger.error("CLERK_SECRET_KEY is not set")
+            return jsonify({'error': 'Server configuration error'}), 500
         headers = {'Authorization': f'Bearer {clerk_api_key}'}
         params = {
             'limit': limit,
@@ -89,6 +92,9 @@ def get_only_users():
         
         # Get users from Clerk using REST API
         clerk_api_key = os.getenv('CLERK_SECRET_KEY')
+        if not clerk_api_key:
+            logger.error("CLERK_SECRET_KEY is not set")
+            return jsonify({'error': 'Server configuration error'}), 500
         headers = {'Authorization': f'Bearer {clerk_api_key}'}
         params = {
             'limit': limit,

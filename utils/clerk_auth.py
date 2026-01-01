@@ -1,6 +1,9 @@
 import os
 import json
+import threading
 from functools import wraps
+from typing import Dict
+
 from flask import request, jsonify
 
 # JWT verification
@@ -11,31 +14,46 @@ except ImportError:
     jwt = None
     PyJWKClient = None
 
+# Cache for PyJWKClient instances keyed by issuer URL
+_jwk_client_cache: Dict[str, "PyJWKClient"] = {}
+_jwk_client_cache_lock = threading.Lock()
+JWKS_LIFESPAN_SECONDS = 3600
+
+# Validate required environment variables at startup
+CLERK_ISSUER = os.getenv('CLERK_ISSUER')
+if not CLERK_ISSUER:
+    raise RuntimeError('Missing required CLERK_ISSUER environment variable')
+
+
+def _get_jwk_client(issuer: str):
+    """Get or create a cached PyJWKClient for the given issuer."""
+    if issuer in _jwk_client_cache:
+        return _jwk_client_cache[issuer]
+    
+    with _jwk_client_cache_lock:
+        if issuer not in _jwk_client_cache:
+            jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
+            # PyJWKClient caches keys internally; lifespan controls how long before refresh
+            _jwk_client_cache[issuer] = PyJWKClient(jwks_url, lifespan=JWKS_LIFESPAN_SECONDS)
+    return _jwk_client_cache[issuer]
+
 def _verify_jwt(token: str):
     """Verify JWT using JWKS from the configured issuer and return claims."""
-    issuer = os.getenv('CLERK_ISSUER')
-    if not issuer:
-        raise ValueError('Missing CLERK_ISSUER environment variable')
-
     if jwt is None or PyJWKClient is None:
         raise ValueError('PyJWT is not installed; cannot verify tokens')
 
     try:
-        jwks_url = issuer.rstrip('/') + '/.well-known/jwks.json'
-
-        jwk_client = PyJWKClient(jwks_url)
+        jwk_client = _get_jwk_client(CLERK_ISSUER)
         signing_key = jwk_client.get_signing_key_from_jwt(token)
 
         # Clerk tokens typically use RS256 and include `iss`
+        # Verify issuer signature but skip audience verification for compatibility
         claims = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256", "RS512"],
-            issuer=issuer,
-            options={
-                
-                'verify_aud': False
-            }
+            issuer=CLERK_ISSUER,
+            options={"verify_aud": False}
         )
         return claims
     except jwt.PyJWTError as e:

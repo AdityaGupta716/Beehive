@@ -49,6 +49,21 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // Create and manage Blob URL for selected voice note
+  useEffect(() => {
+    if (!selectedVoiceNote) {
+      setAudioUrl(null);
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedVoiceNote);
+    setAudioUrl(objectUrl);
+
+    // Revoke object URL on cleanup to prevent leaks
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedVoiceNote]);
 
     useEffect(() => {
     if (!isRecording) return;
@@ -61,7 +76,20 @@ const Upload = () => {
   }, [isRecording]);
 
   // Block restricted contents
-  const handleRemoveFile = useCallback(() => {
+const aiBlock = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  const isBlocked = message.includes('blocked') || message.includes('restricted');
+
+  if (isBlocked) {
+    toast.error("This media couldn't be analyzed due to content restrictions.");
+    handleRemoveAllMedia();
+  }
+
+  return isBlocked;
+};
+
+
+ const handleRemoveFile = () => {
     setSelectedImage(null);
     setImagePreview(null);
     setIsPreviewing(false);
@@ -76,6 +104,21 @@ const Upload = () => {
       handleRemoveFile();
     }
   }, [handleRemoveFile]);
+
+  const handleRemoveAllMedia = () => {
+    // Clear image
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsPreviewing(false);
+
+    // Clear audio
+    setSelectedVoiceNote(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
+  };
 
  // AI Analysis Function
   const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
@@ -523,7 +566,7 @@ const MAX_SIZE:Record<string,number>={
                     </button>
                     <audio
                       ref={audioRef}
-                      src={selectedVoiceNote ? URL.createObjectURL(selectedVoiceNote) : ''}
+                      src={audioUrl || ''}
                       className="hidden"
                       onEnded={() => setIsPlaying(false)}
                       onError={(e) => {
