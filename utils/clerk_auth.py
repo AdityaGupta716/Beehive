@@ -24,9 +24,6 @@ CLERK_ISSUER = os.getenv('CLERK_ISSUER')
 if not CLERK_ISSUER:
     raise RuntimeError('Missing required CLERK_ISSUER environment variable')
 
-CLERK_AUDIENCE = os.getenv('CLERK_AUDIENCE')
-if not CLERK_AUDIENCE:
-    raise RuntimeError('Missing required CLERK_AUDIENCE environment variable')
 
 def _get_jwk_client(issuer: str):
     """Get or create a cached PyJWKClient for the given issuer."""
@@ -50,12 +47,13 @@ def _verify_jwt(token: str):
         signing_key = jwk_client.get_signing_key_from_jwt(token)
 
         # Clerk tokens typically use RS256 and include `iss`
+        # Verify issuer signature but skip audience verification for compatibility
         claims = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256", "RS512"],
             issuer=CLERK_ISSUER,
-            audience=CLERK_AUDIENCE,
+            options={"verify_aud": False}
         )
         return claims
     except jwt.PyJWTError as e:
