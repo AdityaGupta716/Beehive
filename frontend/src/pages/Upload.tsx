@@ -49,6 +49,21 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // Create and manage Blob URL for selected voice note
+  useEffect(() => {
+    if (!selectedVoiceNote) {
+      setAudioUrl(null);
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedVoiceNote);
+    setAudioUrl(objectUrl);
+
+    // Revoke object URL on cleanup to prevent leaks
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedVoiceNote]);
 
     useEffect(() => {
     if (!isRecording) return;
@@ -514,7 +529,7 @@ const MAX_SIZE:Record<string,number>={
                     </button>
                     <audio
                       ref={audioRef}
-                      src={selectedVoiceNote ? URL.createObjectURL(selectedVoiceNote) : ''}
+                      src={audioUrl || ''}
                       className="hidden"
                       onEnded={() => setIsPlaying(false)}
                       onError={(e) => {
