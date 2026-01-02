@@ -65,6 +65,19 @@ const Upload = () => {
     return () => URL.revokeObjectURL(objectUrl);
   }, [selectedVoiceNote]);
 
+  // Create and clean up preview URLs for selected images to avoid data: URLs
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreview(null);
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedImage);
+    setImagePreview(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedImage]);
+
     useEffect(() => {
     if (!isRecording) return;
 
@@ -182,11 +195,6 @@ const MAX_SIZE:Record<string,number>={
     }
 
     setSelectedImage(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
     handleAnalyzeMedia(file, selectedVoiceNote);
   }, [selectedVoiceNote, handleAnalyzeMedia]);
 
