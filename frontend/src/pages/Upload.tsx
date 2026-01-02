@@ -1,4 +1,4 @@
-import { useState, useRef,useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   CloudArrowUpIcon,
@@ -15,6 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { apiUrl } from '../utils/api';
+import useObjectUrl from '../hooks/useObjectUrl';
 
 const allowedFileTypes = [
   'image/jpeg',
@@ -37,7 +38,6 @@ const Upload = () => {
   const [customSentiment, setCustomSentiment] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedVoiceNote, setSelectedVoiceNote] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -49,34 +49,8 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-
-  // Create and manage Blob URL for selected voice note
-  useEffect(() => {
-    if (!selectedVoiceNote) {
-      setAudioUrl(null);
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(selectedVoiceNote);
-    setAudioUrl(objectUrl);
-
-    // Revoke object URL on cleanup to prevent leaks
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedVoiceNote]);
-
-  // Create and clean up preview URLs for selected images to avoid data: URLs
-  useEffect(() => {
-    if (!selectedImage) {
-      setImagePreview(null);
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(selectedImage);
-    setImagePreview(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedImage]);
+  const imagePreview = useObjectUrl(selectedImage);
+  const audioUrl = useObjectUrl(selectedVoiceNote);
 
     useEffect(() => {
     if (!isRecording) return;
@@ -104,14 +78,12 @@ const aiBlock = (error: unknown): boolean => {
 
  const handleRemoveFile = () => {
     setSelectedImage(null);
-    setImagePreview(null);
     setIsPreviewing(false);
   };
 
   const handleRemoveAllMedia = () => {
     // Clear image
     setSelectedImage(null);
-    setImagePreview(null);
     setIsPreviewing(false);
 
     // Clear audio
