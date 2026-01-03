@@ -76,26 +76,13 @@ const Upload = () => {
   }, [isRecording]);
 
   // Block restricted contents
-const aiBlock = (error: unknown): boolean => {
-  const message = error instanceof Error ? error.message.toLowerCase() : '';
-  const isBlocked = message.includes('blocked') || message.includes('restricted');
+const handleRemoveFile = useCallback(() => {
+  setSelectedImage(null);
+  setImagePreview(null);
+  setIsPreviewing(false);
+}, []);
 
-  if (isBlocked) {
-    toast.error("This media couldn't be analyzed due to content restrictions.");
-    handleRemoveAllMedia();
-  }
-
-  return isBlocked;
-};
-
-
- const handleRemoveFile = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    setIsPreviewing(false);
-  };
-
-  const handleRemoveAllMedia = () => {
+const handleRemoveAllMedia = useCallback(() => {
     // Clear image
     setSelectedImage(null);
     setImagePreview(null);
@@ -108,9 +95,17 @@ const aiBlock = (error: unknown): boolean => {
       audioRef.current.currentTime = 0;
     }
     setIsPlaying(false);
-  };
+  }, []);
 
- // AI Analysis Function
+const aiBlock = useCallback((error: unknown) => {
+  const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+  
+  const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
+  if (isBlocked) {
+    toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
+    handleRemoveAllMedia();
+  }
+}, [handleRemoveAllMedia]);
   const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
     if (!imageFile && !audioFile) return;
 
@@ -118,6 +113,11 @@ const aiBlock = (error: unknown): boolean => {
     const analysisToast = toast.loading('AI is analyzing your media...');
 
     try {
+      const token = await clerk.session?.getToken();
+      if (!token) {
+        throw new Error('User not authenticated');
+      }
+
       const formData = new FormData();
       if (imageFile) {
         formData.append('image', imageFile);
@@ -128,7 +128,11 @@ const aiBlock = (error: unknown): boolean => {
 
       const response = await fetch(apiUrl('/api/analyze-media'), {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -157,7 +161,7 @@ const aiBlock = (error: unknown): boolean => {
     } finally {
       setIsAnalyzing(false);
     }
-  },[aiBlock]);
+  },[aiBlock, clerk]);
 
 const MAX_SIZE:Record<string,number>={
 "image/jpeg": 10 * 1024 * 1024, 
