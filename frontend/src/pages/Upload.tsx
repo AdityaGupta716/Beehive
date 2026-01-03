@@ -1,4 +1,4 @@
-import { useState, useRef,useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   CloudArrowUpIcon,
@@ -15,6 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { apiUrl } from '../utils/api';
+import useObjectUrl from '../hooks/useObjectUrl';
 
 const allowedFileTypes = [
   'image/jpeg',
@@ -37,7 +38,6 @@ const Upload = () => {
   const [customSentiment, setCustomSentiment] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedVoiceNote, setSelectedVoiceNote] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -49,21 +49,8 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-
-  // Create and manage Blob URL for selected voice note
-  useEffect(() => {
-    if (!selectedVoiceNote) {
-      setAudioUrl(null);
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(selectedVoiceNote);
-    setAudioUrl(objectUrl);
-
-    // Revoke object URL on cleanup to prevent leaks
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedVoiceNote]);
+  const imagePreview = useObjectUrl(selectedImage);
+  const audioUrl = useObjectUrl(selectedVoiceNote);
 
     useEffect(() => {
     if (!isRecording) return;
@@ -75,17 +62,14 @@ const Upload = () => {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // Block restricted contents
-const handleRemoveFile = useCallback(() => {
-  setSelectedImage(null);
-  setImagePreview(null);
-  setIsPreviewing(false);
-}, []);
+  const handleRemoveFile = useCallback(() => {
+    setSelectedImage(null);
+    setIsPreviewing(false);
+  }, []);
 
-const handleRemoveAllMedia = useCallback(() => {
+  const handleRemoveAllMedia = useCallback(() => {
     // Clear image
     setSelectedImage(null);
-    setImagePreview(null);
     setIsPreviewing(false);
 
     // Clear audio
@@ -97,15 +81,16 @@ const handleRemoveAllMedia = useCallback(() => {
     setIsPlaying(false);
   }, []);
 
-const aiBlock = useCallback((error: unknown) => {
-  const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-  
-  const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
-  if (isBlocked) {
-    toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
-    handleRemoveAllMedia();
-  }
-}, [handleRemoveAllMedia]);
+  const aiBlock = useCallback((error: unknown): boolean => {
+    const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+    
+    const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
+    if (isBlocked) {
+      toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
+      handleRemoveAllMedia();
+    }
+    return isBlocked;
+  }, [handleRemoveAllMedia]);
   const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
     if (!imageFile && !audioFile) return;
 
@@ -186,13 +171,8 @@ const MAX_SIZE:Record<string,number>={
     }
 
     setSelectedImage(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
     handleAnalyzeMedia(file, selectedVoiceNote);
-  }, [selectedVoiceNote, handleAnalyzeMedia]);
+  }, [selectedVoiceNote, handleAnalyzeMedia, MAX_SIZE]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -230,7 +210,7 @@ const MAX_SIZE:Record<string,number>={
         handleImageProcessing(file);
       }
     }
-  }, [selectedVoiceNote, handleAnalyzeMedia]);
+  }, [handleImageProcessing]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
