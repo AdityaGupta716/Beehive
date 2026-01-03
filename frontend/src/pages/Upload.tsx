@@ -62,28 +62,12 @@ const Upload = () => {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // Block restricted contents
-const handleRemoveFile = useCallback(() => {
-  setSelectedImage(null);
-  setImagePreview(null);
-  setIsPreviewing(false);
-}, []);
-
-  if (isBlocked) {
-    toast.error("This media couldn't be analyzed due to content restrictions.");
-    handleRemoveAllMedia();
-  }
-
-  return isBlocked;
-};
-
-
- const handleRemoveFile = () => {
+  const handleRemoveFile = useCallback(() => {
     setSelectedImage(null);
     setIsPreviewing(false);
-  };
+  }, []);
 
-  const handleRemoveAllMedia = () => {
+  const handleRemoveAllMedia = useCallback(() => {
     // Clear image
     setSelectedImage(null);
     setIsPreviewing(false);
@@ -97,15 +81,16 @@ const handleRemoveFile = useCallback(() => {
     setIsPlaying(false);
   }, []);
 
-const aiBlock = useCallback((error: unknown) => {
-  const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-  
-  const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
-  if (isBlocked) {
-    toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
-    handleRemoveAllMedia();
-  }
-}, [handleRemoveAllMedia]);
+  const aiBlock = useCallback((error: unknown): boolean => {
+    const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+    
+    const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
+    if (isBlocked) {
+      toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
+      handleRemoveAllMedia();
+    }
+    return isBlocked;
+  }, [handleRemoveAllMedia]);
   const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
     if (!imageFile && !audioFile) return;
 
@@ -187,7 +172,7 @@ const MAX_SIZE:Record<string,number>={
 
     setSelectedImage(file);
     handleAnalyzeMedia(file, selectedVoiceNote);
-  }, [selectedVoiceNote, handleAnalyzeMedia]);
+  }, [selectedVoiceNote, handleAnalyzeMedia, MAX_SIZE]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -225,7 +210,7 @@ const MAX_SIZE:Record<string,number>={
         handleImageProcessing(file);
       }
     }
-  }, [selectedVoiceNote, handleAnalyzeMedia]);
+  }, [handleImageProcessing]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
