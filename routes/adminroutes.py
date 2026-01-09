@@ -4,7 +4,7 @@ import requests
 from decorators import require_admin_role
 from database.userdatahandler import get_images_by_user, _get_paginated_images_by_user, get_recent_uploads, get_upload_stats, get_upload_analytics, get_user_analytics
 from utils.logger import Logger
-from utils.sanitize import sanitize_text
+from utils.sanitize import sanitize_api_query
 
 logger = Logger.get_logger("adminroutes")
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -33,7 +33,7 @@ def admin_user_images_show(user_id):
 def get_users():
     try:
         # Get query parameters
-        query = sanitize_text(request.args.get('query', ''))
+        query = sanitize_api_query(request.args.get('query', ''))
         limit = int(request.args.get('limit', 10))
         offset = int(request.args.get('offset', 0))
         
@@ -86,7 +86,7 @@ def get_users():
 def get_only_users():
     try:
         # Get query parameters
-        query = sanitize_text(request.args.get('query', ''))
+        query = sanitize_api_query(request.args.get('query', ''))
         limit = int(request.args.get('limit', 10))
         offset = int(request.args.get('offset', 0))
         
