@@ -104,7 +104,7 @@ def get_only_users():
         
         if not response.ok:
             logger.error(f"Clerk API error (only-users): {response.text}")
-            return jsonify({'error': 'Failed to fetch users'}), 500
+            return jsonify({'error': 'Failed to fetch users. Please try again.'}), 500
             
         users_data = response.json()
         
