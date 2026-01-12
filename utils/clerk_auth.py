@@ -1,6 +1,7 @@
 import os
 import json
 import threading
+import logging
 from functools import wraps
 from typing import Dict
 
@@ -57,7 +58,9 @@ def _verify_jwt(token: str):
         )
         return claims
     except jwt.PyJWTError as e:
-        raise ValueError(f'Token verification failed: {e}') from e
+        # Log the actual error for debugging but raise a generic error
+        logging.error(f'JWT verification failed: {e}')
+        raise ValueError('Token verification failed') from e
 
 def require_auth(f):
     """Decorator to enforce authentication via verified JWT (Clerk)."""
