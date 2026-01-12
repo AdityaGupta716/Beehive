@@ -383,7 +383,7 @@ def upload_images():
 
     except Exception as e:
         logging.error(f"Upload error: {str(e)}")  # Add logging
-        return jsonify({"error": f"Error uploading file: {str(e)}"}), 500
+        return jsonify({"error": "Failed to upload file. Please try again."}), 500
 
 
 api_key = os.getenv("GOOGLE_API_KEY")
@@ -484,7 +484,7 @@ def analyze_media():
 
     except Exception as e:
         logging.error(f"User {user_id}: analyze_media error: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Error analyzing media: {str(e)}"}), 500
+        return jsonify({"error": "Failed to analyze media. Please try again."}), 500
 
 
 # generate thumbnail for the pdf
@@ -535,7 +535,7 @@ def edit_image(image_id):
         try:
             image_id = ObjectId(image_id)
         except Exception as e:
-            return jsonify({"error": f"Invalid image ID format: {str(e)}"}), 400
+            return jsonify({"error": "Invalid image ID format."}), 400
 
         # Verify the image exists
         image = get_image_by_id(image_id)
@@ -553,7 +553,8 @@ def edit_image(image_id):
         return jsonify({"message": "Image updated successfully!"}), 200
 
     except Exception as e:
-        return jsonify({"error": f"Error updating image: {str(e)}"}), 500
+        logging.error(f"Error updating image: {str(e)}")
+        return jsonify({"error": "Failed to update image. Please try again."}), 500
 
 
 @app.route("/audio/<filename>")
@@ -570,7 +571,7 @@ def delete_image_route(image_id):
         try:
             image_id = ObjectId(image_id)
         except Exception as e:
-            return jsonify({"error": f"Invalid image ID format: {str(e)}"}), 400
+            return jsonify({"error": "Invalid image ID format."}), 400
 
         # Verify the image exists
         image = get_image_by_id(image_id)
@@ -610,7 +611,8 @@ def delete_image_route(image_id):
         return jsonify({"message": "Image deleted successfully!"}), 200
 
     except Exception as e:
-        return jsonify({"error": f"Error deleting image: {str(e)}"}), 500
+        logging.error(f"Error deleting image: {str(e)}")
+        return jsonify({"error": "Failed to delete image. Please try again."}), 500
 
 
 # Get all images uploaded by a user
@@ -642,7 +644,8 @@ def user_images_show():
         }
         return jsonify(response_data)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Error fetching user uploads: {str(e)}")
+        return jsonify({"error": "Failed to fetch uploads. Please try again."}), 500
 
 
 @app.route("/api/admin/notifications", methods=["GET"])
@@ -680,7 +683,8 @@ def get_admin_notifications():
         ), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Error fetching admin notifications: {str(e)}")
+        return jsonify({"error": "Failed to fetch notifications. Please try again."}), 500
 
 
 @app.route("/api/admin/notifications/mark_seen", methods=["POST"])
@@ -706,7 +710,8 @@ def mark_selected_notifications_seen():
         return jsonify({"status": "ok"}), 200
 
     except Exception as e:
-        return jsonify({"error": "An internal server error occurred."}), 500
+        logging.error(f"Error marking notifications as seen: {str(e)}")
+        return jsonify({"error": "Failed to update notifications. Please try again."}), 500
 
 
 @app.route("/api/chat/send", methods=["POST"])
@@ -734,7 +739,8 @@ def send_chat_message():
         messages_col.insert_one(message)
         return jsonify({"message": "Message sent"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Error sending chat message: {str(e)}")
+        return jsonify({"error": "Failed to send message. Please try again."}), 500
 
 
 @app.route("/api/chat/messages", methods=["GET"])
@@ -767,7 +773,8 @@ def get_chat_messages():
                 m["timestamp"] = m["timestamp"].isoformat()
         return jsonify({"messages": messages}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Error fetching chat messages: {str(e)}")
+        return jsonify({"error": "Failed to fetch messages. Please try again."}), 500
 
 
 # Import blueprints
