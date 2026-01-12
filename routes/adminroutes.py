@@ -77,7 +77,7 @@ def get_users():
         
     except Exception as e:
         logger.error(f"Error fetching users: {str(e)}")
-        return jsonify({'error': 'Failed to fetch users'}), 500
+        return jsonify({'error': 'Failed to fetch users. Please try again.'}), 500
 
 # Get only users (not admins)
 @admin_bp.route('/users/only-users', methods=['GET'])
@@ -103,7 +103,8 @@ def get_only_users():
         response = requests.get('https://api.clerk.com/v1/users', headers=headers, params=params)
         
         if not response.ok:
-            raise Exception(f"Clerk API error: {response.text}")
+            logger.error(f"Clerk API error (only-users): {response.text}")
+            return jsonify({'error': 'Failed to fetch users. Please try again.'}), 500
             
         users_data = response.json()
         
@@ -133,7 +134,7 @@ def get_only_users():
         
     except Exception as e:
         logger.error(f"Error fetching only users: {str(e)}")
-        return jsonify({'error': 'Failed to fetch only users'}), 500
+        return jsonify({'error': 'Failed to fetch users. Please try again.'}), 500
 
 # Get dashboard statistics and recent activity
 @admin_bp.route('/dashboard', methods=['GET'])
@@ -156,7 +157,7 @@ def get_dashboard_data():
         
     except Exception as e:
         logger.error(f"Error fetching dashboard data: {str(e)}")
-        return jsonify({'error': 'Failed to fetch dashboard data'}), 500
+        return jsonify({'error': 'Failed to fetch dashboard data. Please try again.'}), 500
     
 
 @admin_bp.route('/analytics', methods=['GET'])
@@ -180,4 +181,4 @@ def get_all_analytics():
 
     except Exception as e:
         logger.error(f"Error fetching combined analytics: {str(e)}")
-        return jsonify({"error": "Failed to fetch analytics data"}), 500
+        return jsonify({"error": "Failed to fetch analytics data. Please try again."}), 500
