@@ -557,9 +557,7 @@ const MAX_SIZE:Record<string,number>={
             type="button"
             onClick={() => handleAnalyzeMedia(selectedImage, selectedVoiceNote)}
             disabled={!selectedImage && !selectedVoiceNote || isUploading || isAnalyzing}
-            className={`flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
-              (!selectedImage && !selectedVoiceNote) || isUploading || isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <SparklesIcon className="h-5 w-5" />
             {isAnalyzing ? 'Analyzing...' : 'Analyze'}
@@ -568,9 +566,7 @@ const MAX_SIZE:Record<string,number>={
           <button
             type="submit"
             disabled={!selectedImage || isUploading || isAnalyzing}
-            className={`flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 ${
-              !selectedImage || isUploading || isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Uploading...' : 'Upload Media'}
           </button>
