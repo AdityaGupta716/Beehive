@@ -171,8 +171,7 @@ const MAX_SIZE:Record<string,number>={
     }
 
     setSelectedImage(file);
-    handleAnalyzeMedia(file, selectedVoiceNote);
-  }, [selectedVoiceNote, handleAnalyzeMedia, MAX_SIZE]);
+  }, [MAX_SIZE]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -238,8 +237,6 @@ const MAX_SIZE:Record<string,number>={
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const audioFile = new File([audioBlob], 'voice-note.wav', { type: 'audio/wav' });
         setSelectedVoiceNote(audioFile);
-        // Trigger AI analysis when recording stops
-        handleAnalyzeMedia(selectedImage, audioFile);
         stream.getTracks().forEach((track) => track.stop());
       };
 
