@@ -171,8 +171,7 @@ const MAX_SIZE:Record<string,number>={
     }
 
     setSelectedImage(file);
-    handleAnalyzeMedia(file, selectedVoiceNote);
-  }, [selectedVoiceNote, handleAnalyzeMedia, MAX_SIZE]);
+  }, [MAX_SIZE]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -238,8 +237,6 @@ const MAX_SIZE:Record<string,number>={
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const audioFile = new File([audioBlob], 'voice-note.wav', { type: 'audio/wav' });
         setSelectedVoiceNote(audioFile);
-        // Trigger AI analysis when recording stops
-        handleAnalyzeMedia(selectedImage, audioFile);
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -370,7 +367,8 @@ const MAX_SIZE:Record<string,number>={
                     <button
                       type="button"
                       onClick={handleRemoveFile}
-                      className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      disabled={isUploading || isAnalyzing}
+                      className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Remove File"
                     >
                       <TrashIcon className="h-5 w-5 text-red-500" />
@@ -524,7 +522,8 @@ const MAX_SIZE:Record<string,number>={
                     <button
                       type="button"
                       onClick={handleRerecord}
-                      className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-200"
+                      disabled={isUploading || isAnalyzing}
+                      className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Record Again"
                     >
                       <ArrowPathIcon className="h-5 w-5" />
@@ -553,15 +552,25 @@ const MAX_SIZE:Record<string,number>={
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={isUploading || isAnalyzing}
-          className={`w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 ${
-            isUploading || isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {isUploading ? 'Uploading...' : 'Upload Media'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleAnalyzeMedia(selectedImage, selectedVoiceNote)}
+            disabled={!selectedImage && !selectedVoiceNote || isUploading || isAnalyzing}
+            className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <SparklesIcon className="h-5 w-5" />
+            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+          </button>
+
+          <button
+            type="submit"
+            disabled={!selectedImage || isUploading || isAnalyzing}
+            className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isUploading ? 'Uploading...' : 'Upload Media'}
+          </button>
+        </div>
       </form>
 
       {/* Preview Modal */}
