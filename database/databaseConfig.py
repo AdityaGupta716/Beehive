@@ -35,7 +35,7 @@ except Exception as e:
     logger.info("Connected to local MongoDB")
 
 beehive = dbclient.beehive
-
+db=beehive
 
 def get_beehive_user_collection():
     return beehive.users

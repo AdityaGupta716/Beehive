@@ -7,6 +7,11 @@ class Config:
     # Clerk Configuration
     CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY')
     CLERK_ISSUER = os.getenv('CLERK_ISSUER')
+
+    JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-this")
+    JWT_ALGORITHM = "HS256"
+    JWT_EXPIRE_HOURS = 24
+
     
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'beehive-secret-key')

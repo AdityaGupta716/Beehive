@@ -1,21 +1,44 @@
-import { useUser } from "@clerk/clerk-react";
+import { useMemo } from "react";
+
+interface JwtUser {
+  sub: string;
+  role: "admin" | "user";
+  exp: number;
+  iat: number;
+}
+
+function decodeToken(): JwtUser | null {
+  const token = localStorage.getItem("access_token");
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload as JwtUser;
+  } catch {
+    return null;
+  }
+}
 
 export const useAuth = () => {
-  const { user } = useUser();
-  
+  const user = useMemo(() => decodeToken(), []);
+
+  const isAuthenticated = () => {
+    if (!user) return false;
+    return user.exp * 1000 > Date.now(); // token not expired
+  };
+
   const isAdmin = () => {
-    // console.log(user?.publicMetadata?.role);
-    return user?.publicMetadata?.role === "admin";
+    return isAuthenticated() && user?.role === "admin";
   };
 
   const isUser = () => {
-    // console.log(user?.publicMetadata?.role);
-    return !user?.publicMetadata?.role || user?.publicMetadata?.role === "user";
+    return isAuthenticated() && user?.role === "user";
   };
 
   return {
+    user,
+    isAuthenticated,
     isAdmin,
     isUser,
-    user
   };
-}; 
+};
