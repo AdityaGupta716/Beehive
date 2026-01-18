@@ -270,6 +270,17 @@ def _validate_audio_file_upload(audio_file):
 
     return None
 
+AUDIO_MIME_TO_EXTENSION = {
+    "audio/webm": ".webm",
+    "video/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "video/ogg": ".ogg",
+    "application/ogg": ".ogg",
+    "audio/opus": ".opus",
+    "audio/x-wav": ".wav",
+    "audio/wav": ".wav",
+}
+
 # Upload images
 @app.route("/api/user/upload", methods=["POST"])
 @require_auth
@@ -352,16 +363,7 @@ def upload_images():
                         return audio_mime_or_error
 
                     audio_mime = audio_mime_or_error  # safe: decode returns mime on success
-                    audio_ext = {
-                                        "audio/webm": ".webm",
-                                        "video/webm": ".webm",
-                                        "audio/ogg": ".ogg",
-                                        "video/ogg": ".ogg",
-                                        "application/ogg": ".ogg",
-                                        "audio/opus": ".opus",
-                                        "audio/x-wav": ".wav",
-                                        "audio/wav": ".wav",
-                                    }.get(audio_mime, ".wav")
+                    audio_ext = audio_ext = AUDIO_MIME_TO_EXTENSION.get(audio_mime, ".wav")
 
                     audio_filename = f"{safe_audio_basename}_{ObjectId()}{audio_ext}"
                     audio_path = os.path.join(
