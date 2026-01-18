@@ -116,6 +116,7 @@ const Gallery = () => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<string | null>(null);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'rolling'>('grid');
   const [gridSize, setGridSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showLayoutOptions, setShowLayoutOptions] = useState(false);
@@ -315,23 +316,72 @@ const Gallery = () => {
     toast.success('File opened in new window!');
   };
 
-  const handleAudioClick = (audioFilename: string) => {
+  const handleAudioClick = async (audioFilename: string) => {
+    // Stop and clear if toggling the same audio
     if (currentAudio === audioFilename) {
-      // If clicking the same audio, stop it
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
       setCurrentAudio(null);
-    } else {
-      // If clicking a different audio, stop current and play new
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+      setCurrentAudioUrl((url) => {
+        if (url) URL.revokeObjectURL(url);
+        return null;
+      });
+      return;
+    }
+
+    // Stop any current playback before loading the next file
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    try {
+      const response = await authenticatedFetch(`/audio/${audioFilename}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Audio load failed (${response.status})`);
       }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      setCurrentAudioUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return objectUrl;
+      });
       setCurrentAudio(audioFilename);
+
+      if (audioRef.current) {
+        audioRef.current.src = objectUrl;
+        audioRef.current.play().catch((error) => {
+          console.error('Error playing audio:', error);
+          toast.error('Error playing audio');
+          setCurrentAudio(null);
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching audio:', error);
+      toast.error('Unable to load audio');
+      setCurrentAudio(null);
+      setCurrentAudioUrl((url) => {
+        if (url) URL.revokeObjectURL(url);
+        return null;
+      });
     }
   };
+
+  useEffect(() => {
+    return () => {
+      setCurrentAudioUrl((url) => {
+        if (url) URL.revokeObjectURL(url);
+        return null;
+      });
+    };
+  }, []);
 
   const renderFilePreview = () => {
     if (!selectedFile) return null;
@@ -914,13 +964,24 @@ const Gallery = () => {
                       >
                         <SpeakerWaveIcon className="h-4 w-4" />
                       </motion.button>
-                      {currentAudio === image.audio_filename && (
+                      {currentAudio === image.audio_filename && currentAudioUrl && (
                         <motion.audio
                           ref={audioRef}
-                          src={apiUrl(`/audio/${image.audio_filename}`)}
+                          src={currentAudioUrl}
                           controls
                           className="h-6"
-                          onEnded={() => setCurrentAudio(null)}
+                          onEnded={() => {
+                            setCurrentAudio(null);
+                            setCurrentAudioUrl((url) => {
+                              if (url) URL.revokeObjectURL(url);
+                              return null;
+                            });
+                          }}
+                          onError={(e) => {
+                            console.error('Audio playback error:', e);
+                            toast.error('Error playing audio');
+                            setCurrentAudio(null);
+                          }}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.2 }}
