@@ -150,6 +150,16 @@ const Gallery = () => {
     });
   }, [clerk]);
 
+  // Revoke current audio object URL and clear state
+  const revokeCurrentAudioUrl = useCallback(() => {
+    setCurrentAudioUrl((url) => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+      return null;
+    });
+  }, []);
+
   // Fetch uploads with pagination support
   const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
     if (!user?.id) return;
@@ -324,10 +334,7 @@ const Gallery = () => {
         audioRef.current.currentTime = 0;
       }
       setCurrentAudio(null);
-      setCurrentAudioUrl((url) => {
-        if (url) URL.revokeObjectURL(url);
-        return null;
-      });
+      revokeCurrentAudioUrl();
       return;
     }
 
@@ -367,21 +374,15 @@ const Gallery = () => {
       console.error('Error fetching audio:', error);
       toast.error('Unable to load audio');
       setCurrentAudio(null);
-      setCurrentAudioUrl((url) => {
-        if (url) URL.revokeObjectURL(url);
-        return null;
-      });
+      revokeCurrentAudioUrl();
     }
   };
 
   useEffect(() => {
     return () => {
-      setCurrentAudioUrl((url) => {
-        if (url) URL.revokeObjectURL(url);
-        return null;
-      });
+      revokeCurrentAudioUrl();
     };
-  }, []);
+  }, [revokeCurrentAudioUrl]);
 
   const renderFilePreview = () => {
     if (!selectedFile) return null;
@@ -972,10 +973,7 @@ const Gallery = () => {
                           className="h-6"
                           onEnded={() => {
                             setCurrentAudio(null);
-                            setCurrentAudioUrl((url) => {
-                              if (url) URL.revokeObjectURL(url);
-                              return null;
-                            });
+                            revokeCurrentAudioUrl();
                           }}
                           onError={(e) => {
                             console.error('Audio playback error:', e);
