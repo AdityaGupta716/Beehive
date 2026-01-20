@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 Element.prototype.scrollIntoView = vi.fn();
