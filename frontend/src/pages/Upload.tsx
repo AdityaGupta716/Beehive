@@ -222,8 +222,11 @@ const MAX_SIZE:Record<string,number>={
 
   const startRecording = async () => {
     try {
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+      const fileExtension = mimeType === 'audio/ogg' ? 'ogg' : 'webm';
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -234,8 +237,12 @@ const MAX_SIZE:Record<string,number>={
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioFile = new File([audioBlob], 'voice-note.wav', { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const audioFile = new File(
+          [audioBlob],
+          `voice-note.${fileExtension}`,
+          { type: mimeType }
+        );
         setSelectedVoiceNote(audioFile);
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -505,7 +512,7 @@ const MAX_SIZE:Record<string,number>={
                   </span>
                 )}
 
-                {selectedVoiceNote && (
+                {selectedVoiceNote && audioUrl && (
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -530,7 +537,7 @@ const MAX_SIZE:Record<string,number>={
                     </button>
                     <audio
                       ref={audioRef}
-                      src={audioUrl || ''}
+                      src={audioUrl}
                       className="hidden"
                       onEnded={() => setIsPlaying(false)}
                       onError={(e) => {

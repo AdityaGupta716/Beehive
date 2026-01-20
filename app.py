@@ -77,7 +77,16 @@ ALLOWED_MIME_TYPES = {
     "image/avif",
 }
 
-ALLOWED_AUDIO_MIME_TYPES = {"audio/wav", "audio/x-wav"}
+ALLOWED_AUDIO_MIME_TYPES = {
+    "audio/wav",
+    "audio/x-wav",
+    "audio/webm",
+    "audio/ogg",
+    "audio/opus",
+    "video/webm",  # Some browsers label audio-only webm as video/webm
+    "video/ogg",   # Defensive allow for ogg containers
+    "application/ogg",  # libmagic may report this for ogg
+}
 MAX_AUDIO_FILE_SIZE = 6 * 1024 * 1024  # We can set the size required to Beehive 
 AUDIO_DATA_URL_RE = re.compile(r"^data:(?P<mime>[-\w.+/]+);base64,(?P<data>[A-Za-z0-9+/=\r\n]+)$")
 
@@ -207,7 +216,8 @@ def _decode_audio_data(audio_data):
         return None, (jsonify({"error": "Invalid audio data URL format"}), 400)
 
     mime_type = match.group("mime").lower()
-    if mime_type not in ALLOWED_AUDIO_MIME_TYPES:
+    base_mime = mime_type.split(";")[0].strip()
+    if base_mime not in ALLOWED_AUDIO_MIME_TYPES:
         return None, (jsonify({"error": "Unsupported audio MIME type"}), 400)
 
     b64_payload = match.group("data").strip()
@@ -225,12 +235,12 @@ def _decode_audio_data(audio_data):
     if size_error:
         return None, size_error
 
-    if mime_type.startswith("audio/wav") and not (
+    if base_mime.startswith("audio/wav") and not (
         audio_binary.startswith(b"RIFF") and audio_binary[8:12] == b"WAVE"
     ):
         return None, (jsonify({"error": "Audio content validation failed"}), 400)
 
-    return audio_binary, None
+    return audio_binary, base_mime
 
 
 def _validate_audio_file_upload(audio_file):
@@ -246,8 +256,9 @@ def _validate_audio_file_upload(audio_file):
     detected_mime = (MAGIC.from_buffer(header) if MAGIC else None) or (
         audio_file.mimetype.lower() if audio_file.mimetype else ""
     )
+    base_mime = detected_mime.split(";")[0].strip() if detected_mime else ""
 
-    if detected_mime not in ALLOWED_AUDIO_MIME_TYPES:
+    if base_mime not in ALLOWED_AUDIO_MIME_TYPES:
         return jsonify({"error": "Audio file type not allowed"}), 400
 
     audio_file.stream.seek(0, os.SEEK_END)
@@ -258,6 +269,17 @@ def _validate_audio_file_upload(audio_file):
         return size_error
 
     return None
+
+AUDIO_MIME_TO_EXTENSION = {
+    "audio/webm": ".webm",
+    "video/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "video/ogg": ".ogg",
+    "application/ogg": ".ogg",
+    "audio/opus": ".opus",
+    "audio/x-wav": ".wav",
+    "audio/wav": ".wav",
+}
 
 # Upload images
 @app.route("/api/user/upload", methods=["POST"])
@@ -335,11 +357,15 @@ def upload_images():
 
                 # Handle audio upload (either base64 or file)
                 if audio_data:
-                    audio_binary, audio_error = _decode_audio_data(audio_data)
-                    if audio_error:
-                        return audio_error
+                    audio_binary, audio_mime_or_error = _decode_audio_data(audio_data)
+                    if not isinstance(audio_binary, (bytes, bytearray)):
+                        # audio_mime_or_error holds the response tuple in this case
+                        return audio_mime_or_error
 
-                    audio_filename = f"{safe_audio_basename}_{ObjectId()}.wav"
+                    audio_mime = audio_mime_or_error  # safe: decode returns mime on success
+                    audio_ext = audio_ext = AUDIO_MIME_TO_EXTENSION.get(audio_mime, ".wav")
+
+                    audio_filename = f"{safe_audio_basename}_{ObjectId()}{audio_ext}"
                     audio_path = os.path.join(
                         app.config["UPLOAD_FOLDER"], audio_filename
                     )
