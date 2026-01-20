@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useClerk } from '@clerk/clerk-react';
+import { getToken } from '../../utils/auth';
 import {
   UserIcon,
   EnvelopeIcon,
@@ -34,15 +34,15 @@ const Users = () => {
   // const [userId, setUserId] = useState('');
   const [limit] = useState(10);
   const navigate = useNavigate();
-  const clerk = useClerk();
+  const token = getToken();
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const offset = (currentPage - 1) * limit;
       
-      // Get the authentication token from Clerk
-      const token = await clerk.session?.getToken();
+      // Get the authentication token from local storage
+      // token is available above
       
       const response = await fetch(apiUrl(`/api/admin/users?limit=${limit}&offset=${offset}&query=${searchTerm}`), {
         method: 'GET',

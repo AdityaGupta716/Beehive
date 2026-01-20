@@ -55,7 +55,7 @@ const MainLayout = () => {
                     alt="Beehive Logo"
                     className="h-8 w-8 inline-block mr-2"
                   />
-                  Beehive
+                  Beehive 
                 </Link>
               </div>
               {/* Top nav links hidden on mobile */}
@@ -127,25 +127,9 @@ const MainLayout = () => {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {isAuthenticated() ? (
-          <button
-            onClick={() => {
-              localStorage.removeItem("access_token");
-              navigate("/sign-in");
-            }}
-            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
-          >
-            Logout
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate("/sign-in")}
-            className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg"
-          >
-            Sign In
-          </button>
-        )}
+      {/* Render nested routes here */}
+      <main>
+        <Outlet />
       </main>
 
       {/* Sidebar Drawer for mobile */}
@@ -195,7 +179,5 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
-function useUser(): { user: any; } {
-  throw new Error("Function not implemented.");
-}
+
 

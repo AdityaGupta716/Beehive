@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { apiUrl } from "../../utils/api";
+import { getToken } from '../../utils/auth';
 
 // Mock data - replace with actual data from backend
 // const mockAnalytics = {
@@ -136,7 +137,7 @@ const Analytics = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = await window.Clerk.session?.getToken();
+      const token = getToken();
       const response = await fetch(apiUrl('/api/admin/analytics'), {
         method: "GET",
         headers: {

@@ -1,6 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 
-const TOKEN_KEY = "beehive_token";
+const TOKEN_KEY = "access_token";
 
 export function saveToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token);

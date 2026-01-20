@@ -1,9 +1,45 @@
 import { Link } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
 import { CloudArrowUpIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
+type JWTUser = {
+  firstName?: string;
+  publicMetadata?: {
+    role?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
+
+const parseJwt = (token: string | null): any | null => {
+  if (!token) return null;
+  try {
+    const base64 = token.split('.')[1];
+    // handle base64url
+    const padded = base64.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(padded);
+    const json = decodeURIComponent(
+      Array.prototype.map
+        .call(decoded, (c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
+
+import { getToken } from '../utils/auth';
+
+const getUserFromToken = (): JWTUser | null => {
+  if (typeof window === 'undefined') return null;
+  const token = getToken();
+  const payload = parseJwt(token);
+  // payload may directly be the user object or contain a `user` field depending on how your JWT is issued
+  return (payload?.user ?? payload) as JWTUser | null;
+};
+
 const Home = () => {
-  const { user } = useUser();
+  const user = getUserFromToken();
 
   return (
     <div className="py-12">
@@ -47,20 +83,20 @@ const Home = () => {
           <div className="mt-12">
             <h2 className="text-2xl font-semibold mb-4">Admin Quick Access</h2>
             <div className="flex justify-center space-x-4">
-              <Link 
-                to="/admin" 
+              <Link
+                to="/admin"
                 className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
               >
                 Dashboard
               </Link>
-              <Link 
-                to="/admin/users" 
+              <Link
+                to="/admin/users"
                 className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
               >
                 Manage Users
               </Link>
-              <Link 
-                to="/admin/analytics" 
+              <Link
+                to="/admin/analytics"
                 className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
               >
                 View Analytics
@@ -73,4 +109,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;

@@ -425,6 +425,10 @@ def analyze_media():
     image_file = request.files.get("image")
     audio_file = request.files.get("audio")
 
+    # If Google Generative AI isn't configured, return a clear error
+    if not genai_configured:
+        return jsonify({"error": "AI analysis not configured on server. Set a valid GOOGLE_API_KEY."}), 503
+
     prompt_parts = []
 
     if image_file and image_file.mimetype == "application/pdf":

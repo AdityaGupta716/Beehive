@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { getToken } from '../utils/auth';
+import { useAuth } from '../hooks/useAuth';
 import {
   CloudArrowUpIcon,
   MicrophoneIcon,
@@ -29,8 +30,8 @@ const allowedFileTypes = [
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
-  const { user } = useUser();
-  const clerk = useClerk();
+  const tokenFromStorage = getToken();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -98,7 +99,7 @@ const Upload = () => {
     const analysisToast = toast.loading('AI is analyzing your media...');
 
     try {
-      const token = await clerk.session?.getToken();
+      const token = tokenFromStorage;
       if (!token) {
         throw new Error('User not authenticated');
       }
@@ -146,7 +147,7 @@ const Upload = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  },[aiBlock, clerk]);
+  },[aiBlock]);
 
 const MAX_SIZE:Record<string,number>={
 "image/jpeg": 10 * 1024 * 1024, 
@@ -316,7 +317,7 @@ const MAX_SIZE:Record<string,number>={
         formData.append('audio', selectedVoiceNote);
       }
       // Make the upload request
-      const token = await clerk.session?.getToken();
+      const token = tokenFromStorage;
       const response = await fetch(apiUrl('/api/user/upload'), {
         method: 'POST',
         headers: {

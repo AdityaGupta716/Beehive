@@ -1,37 +1,32 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import { ThemeProvider } from "../src/context/ThemeContext";
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from '../src/context/ThemeContext';
 
-import ScrollToTop from "./components/ScrollToTop";
+import ScrollToTop from './components/ScrollToTop';
 
 // Layout
-import MainLayout from "../src/layouts/MainLayout";
-import AuthLayout from "../src/layouts/AuthLayout";
-import AdminLayout from "../src/layouts/AdminLayout";
+import MainLayout from '../src/layouts/MainLayout';
+import AuthLayout from '../src/layouts/AuthLayout';
+import AdminLayout from '../src/layouts/AdminLayout';
 
 // Protected Routes
-import { AdminRoute, UserRoute } from "./components/ProtectedRoutes";
+import { AdminRoute, UserRoute } from './components/ProtectedRoutes';
 
 // Pages
-import Home from "./pages/Home";
-import Gallery from "../src/pages/Gallery";
-import Upload from "../src/pages/Upload";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminUsers from "./pages/admin/Users";
-import AdminAnalytics from "../src/pages/admin/Analytics";
-import UserUploads from "./pages/admin/UserUploads";
-import SignInPage from "./pages/auth/SignIn";
-import SignUpPage from "./pages/auth/SignUp";
-import Landing from "./pages/Landing";
-import NoAccess from "./pages/NoAccess";
-import AboutUs from "./pages/AboutUs";
-import PrivacyPolicy from "./pages/Privacy";
-import TermsOfService from "./pages/TermsofService";
+import Home from './pages/Home';
+import Gallery from '../src/pages/Gallery';
+import Upload from '../src/pages/Upload';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminUsers from './pages/admin/Users';
+import AdminAnalytics from '../src/pages/admin/Analytics';
+import UserUploads from './pages/admin/UserUploads';
+import SignInPage from './pages/auth/SignIn';
+import SignUpPage from './pages/auth/SignUp';
+import Landing from './pages/Landing';
+import NoAccess from './pages/NoAccess';
+import AboutUs from './pages/AboutUs';
+import PrivacyPolicy from './pages/Privacy';
+import TermsOfService from './pages/TermsofService';
 
 function App() {
   return (
@@ -45,11 +40,12 @@ function App() {
           <Route path="/about" element={<AboutUs />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-
+          
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
-            <Route path="/sign-in" element={<SignInPage />} />
-            <Route path="/sign-up" element={<SignUpPage />} />
+            <Route path="/sign-in/*" element={<SignInPage />} />
+            <Route path="/sign-up/*" element={<SignUpPage />} />
+            <Route path="/one-factor" element={<SignInPage />} />
           </Route>
 
           {/* Protected User Routes */}

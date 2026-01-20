@@ -1,4 +1,6 @@
+# BSON ObjectId import added
 from datetime import datetime, timedelta, timezone
+from bson.objectid import ObjectId
 # import re
 import bcrypt
 from flask import session
@@ -212,33 +214,29 @@ def get_recent_uploads(limit=10):
             'created_at', -1).limit(limit))
         if not recent_uploads:
             return []
+        # collect user ids and query local user collection
+        raw_ids = [upload.get('user_id') for upload in recent_uploads if upload.get('user_id')]
+        object_ids = []
+        for uid in raw_ids:
+            try:
+                object_ids.append(ObjectId(uid))
+            except Exception:
+                # skip invalid ids
+                continue
 
-        user_ids = list({str(upload.get('user_id'))
-                        for upload in recent_uploads if upload.get('user_id')})
+        users_cursor = beehive_user_collection.find({'_id': {'$in': object_ids}}) if object_ids else []
+        users_data = {str(u['_id']): u for u in users_cursor}
 
-        clerk_api_key = os.getenv('CLERK_SECRET_KEY')
-        headers = {'Authorization': f'Bearer {clerk_api_key}'}
-
-        response = requests.get(
-            'http://127.0.0.1:5000/api/admin/users',
-            headers=headers,
-            params={'query': ','.join(user_ids), 'limit': len(user_ids)}
-        )
-        users_data = response.json().get('users', []) if response.ok else []
-        # map of user_id to user info
-        user_map = {user['id']: user for user in users_data}
-
-        # uploads list with user info
         uploads_list = []
         for upload in recent_uploads:
-            user_id = str(upload.get('user_id'))
-            user = user_map.get(user_id)
-            user_name = user['name'] if user else 'Unknown User'
+            user_id = upload.get('user_id')
+            user = users_data.get(str(user_id)) if user_id else None
+            user_name = user.get('username') if user else 'Unknown User'
             uploads_list.append({
                 'id': str(upload['_id']),
                 'title': upload.get('title', ''),
                 'user': user_name,
-                'user_id': user_id,
+                'user_id': str(user_id) if user_id else None,
                 'timestamp': upload['created_at']['$date'] if isinstance(upload.get('created_at'), dict) else upload.get('created_at'),
                 'description': upload.get('description', ''),
                 'filename': upload.get('filename', ''),
