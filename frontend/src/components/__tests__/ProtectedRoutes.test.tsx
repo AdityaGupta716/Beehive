@@ -1,7 +1,7 @@
 import React from 'react';
-import { describe, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AdminRoute, UserRoute } from '../ProtectedRoutes';
 
 vi.mock('@clerk/clerk-react', () => ({
@@ -17,19 +17,28 @@ vi.mock('../../hooks/useAuth', () => ({
 }));
 
 describe('ProtectedRoutes', () => {
-  it('renders AdminRoute without crashing', () => {
+  it('redirects non-admin users', () => {
     render(
-      <BrowserRouter>
-        <AdminRoute />
-      </BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<AdminRoute />} />
+          <Route path="/no-access" element={<div>No Access Page</div>} />
+        </Routes>
+      </MemoryRouter>
     );
+    expect(screen.getByText('No Access Page')).toBeInTheDocument();
   });
 
-  it('renders UserRoute without crashing', () => {
+  it('renders children for authenticated user', () => {
     render(
-      <BrowserRouter>
-        <UserRoute />
-      </BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route element={<UserRoute />}>
+            <Route path="/" element={<div>User Content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
     );
+    expect(screen.getByText('User Content')).toBeInTheDocument();
   });
 });
