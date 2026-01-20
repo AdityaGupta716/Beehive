@@ -13,9 +13,9 @@ vi.mock('@clerk/clerk-react', () => ({
 describe('SignInPage', () => {
   it('renders Clerk SignIn component', () => {
     const { getByTestId } = render(
-      <BrowserRouter>
+      <MemoryRouter>
         <SignInPage />
-      </BrowserRouter>
+      </MemoryRouter>
     );
     
     expect(getByTestId('clerk-signin')).toBeInTheDocument();
