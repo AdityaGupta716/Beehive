@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import SignInPage from '../SignIn';
 
 vi.mock('@clerk/clerk-react', () => ({
-  SignIn: ({ appearance }: any) => (
+  SignIn: ({ appearance }: { appearance: unknown }) => (
     <div data-testid="clerk-signin">Sign In Component</div>
   ),
 }));
