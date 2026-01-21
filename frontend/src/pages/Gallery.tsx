@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EmptyGalleryIcon } from '../components/ui/EmptyGalleryIcon';
 
 interface Upload {
   id: string;
@@ -180,15 +181,33 @@ const Gallery = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        console.error('Error fetching uploads:', errorMessage);
+        if (page === 1) {
+          toast.error('Failed to fetch uploads');
+          setImages([]);
+        }
+        return;
       }
       
       const data = await response.json();
+      
       if (data.error) {
-        throw new Error(data.error);
+        console.error('Error fetching uploads:', data.error);
+        if (page === 1) {
+          toast.error('Failed to fetch uploads');
+          setImages([]);
+        }
+        return;
       }
       
-      const sortedImages: Upload[] = data.images.sort((a: Upload, b: Upload) =>
+      const sortedImages: Upload[] = (data.images || []).sort((a: Upload, b: Upload) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -207,6 +226,7 @@ const Gallery = () => {
       console.error('Error fetching uploads:', error);
       if (page === 1) {
         toast.error('Failed to fetch uploads');
+        setImages([]);
       }
     } finally {
       setLoading(false);
@@ -844,8 +864,16 @@ const Gallery = () => {
           <>
             <div className={viewMode === 'grid' ? `grid gap-6 ${getGridCols()}` : 'space-y-4'}>
               {filteredImages.length === 0 ? (
-                <div className="col-span-full flex items-center justify-center h-64">
-                  <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
+                <div className="col-span-full flex flex-col items-center justify-center h-64 text-center">
+                  <EmptyGalleryIcon />
+                  {images.length === 0 ? (
+                    <>
+                      <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No uploads yet</h3>
+                      <p className="text-gray-500 dark:text-gray-400">Start by uploading your first image or document</p>
+                    </>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
+                  )}
                 </div>
               ) : (
                 filteredImages.map((image, index) => (
