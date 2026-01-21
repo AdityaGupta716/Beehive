@@ -396,9 +396,12 @@ const MAX_SIZE:Record<string,number>={
                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                       PNG, JPG, GIF, WEBP, HEIF or PDF
                     </p>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 space-y-1">
+                      <p>Max sizes: JPEG/PNG/WEBP 10MB, GIF 8MB, HEIF 15MB, PDF 25MB</p>
+                    </div>
                   </div>
                   <input
                     type="file"
@@ -572,7 +575,7 @@ const MAX_SIZE:Record<string,number>={
 
           <button
             type="submit"
-            disabled={!selectedImage || isUploading || isAnalyzing}
+            disabled={!selectedImage || isUploading || isAnalyzing || (sentiment === 'custom' && !customSentiment.trim())}
             className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Uploading...' : 'Upload Media'}
