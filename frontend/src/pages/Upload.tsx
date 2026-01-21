@@ -58,6 +58,7 @@ const Upload = () => {
   }, [user?.id, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return; // wait until Clerk user is ready
     const key = getDraftKey();
     if (!key) return;
     try {
@@ -78,10 +79,10 @@ const Upload = () => {
     } finally {
       hasHydratedDraft.current = true;
     }
-  }, [getDraftKey]);
+  }, [getDraftKey, isLoaded]);
 
   useEffect(() => {
-    if (!hasHydratedDraft.current) return;
+    if (!isLoaded || !hasHydratedDraft.current) return;
     const key = getDraftKey();
     if (!key) return;
     const isEmpty =
@@ -102,7 +103,7 @@ const Upload = () => {
       customSentiment,
     };
     localStorage.setItem(key, JSON.stringify(draft));
-  }, [title, description, sentiment, customSentiment, getDraftKey]);
+  }, [title, description, sentiment, customSentiment, getDraftKey, isLoaded]);
 
     useEffect(() => {
     if (!isRecording) return;
