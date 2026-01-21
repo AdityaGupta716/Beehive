@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timedelta, timezone
 import random
 import bcrypt
@@ -38,10 +38,29 @@ def request_otp():
 
     otp = create_email_otp(email)
 
-    # DEV ONLY — replace with email sending later
-    print("EMAIL OTP:", otp)
+    # Try to send the OTP via email if mail is configured
+    try:
+        mail_username = current_app.config.get("MAIL_USERNAME")
+        mail_server = current_app.config.get("MAIL_SERVER")
+        if mail_username and mail_server:
+            # Import here to avoid circular imports at module import time
+            from flask_mail import Message
+            from app import mail
 
-    return jsonify({"message": "OTP sent"}), 200
+            subject = "Your Beehive OTP"
+            body = f"Your Beehive verification code is: {otp}\nIt will expire in 5 minutes."
+            msg = Message(subject=subject, recipients=[email], body=body, sender=mail_username)
+            mail.send(msg)
+            return jsonify({"message": "OTP sent"}), 200
+        else:
+            # Mail not configured — fall back to printing for dev
+            current_app.logger.info("MAIL not configured, printing OTP to console")
+            print("EMAIL OTP:", otp)
+            return jsonify({"message": "OTP stored (mail not configured)"}), 200
+    except Exception as e:
+        current_app.logger.exception("Failed to send OTP email: %s", e)
+        # Still return success to avoid leaking whether email exists; but inform admin in logs
+        return jsonify({"message": "OTP stored (failed to send email)"}), 200
 
 
 from datetime import datetime, timezone

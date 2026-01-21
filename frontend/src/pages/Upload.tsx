@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getToken } from '../utils/auth';
+import { getToken, logout } from '../utils/auth';
 import { useAuth } from '../hooks/useAuth';
 import {
   CloudArrowUpIcon,
@@ -302,11 +302,35 @@ const MAX_SIZE:Record<string,number>={
     }
 
     try {
-      setIsUploading(true);
+        setIsUploading(true);
+
+        // Client-side token expiry check to avoid ambiguous server 401s
+        const rawToken = tokenFromStorage;
+        if (!rawToken) {
+          toast.error('User not authenticated. Please sign in.');
+          return;
+        }
+        try {
+          const payload = JSON.parse(atob(rawToken.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 <= Date.now()) {
+            toast.error('Session expired. Redirecting to landing...');
+            logout();
+            navigate('/landing');
+            return;
+          }
+        } catch (e) {
+          // If token malformed, proceed and let server return proper error
+          console.warn('Could not parse token payload', e);
+        }
 
       // Create FormData
       const formData = new FormData();
-      formData.append('username', user.firstName + ' ' + user.lastName);
+      const usernameForUpload =
+        (user?.firstName || user?.lastName)
+          ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+          : user?.name || user?.id || '';
+
+      formData.append('username', usernameForUpload);
       formData.append('files', selectedImage);
       formData.append('title', title);
       formData.append('description', description);

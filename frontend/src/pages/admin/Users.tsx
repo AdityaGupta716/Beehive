@@ -182,10 +182,13 @@ const Users = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0">
-                              <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                {/* <UserIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" /> */}
+                              {user.image ? (
                                 <img src={user.image} alt="User" className="h-10 w-10 rounded-full" />
-                              </div>
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  <UserIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                                </div>
+                              )}
                             </div>
                             <div className="ml-4">
                               <div className="font-medium">{user.name}</div>

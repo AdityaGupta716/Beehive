@@ -40,7 +40,7 @@ const AdminLayout = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const adminId = user?.sub || "admin";
+  const adminId = (user as any)?.id || "admin";
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -353,7 +353,7 @@ const AdminLayout = () => {
                 <button
                   onClick={() => {
                     localStorage.removeItem("access_token");
-                    navigate("/sign-in");
+                    navigate("/landing");
                   }}
                   className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg"
                 >

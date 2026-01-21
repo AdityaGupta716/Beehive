@@ -12,6 +12,9 @@ logger = Logger.get_logger("adminroutes")
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
+from database.databaseConfig import beehive
+
+
 
 # -----------------------------
 # Admin: Get user uploads
@@ -77,3 +80,63 @@ def get_all_analytics():
     except Exception:
         logger.error("Error fetching analytics", exc_info=True)
         return jsonify({"error": "Failed to fetch analytics data"}), 500
+
+
+# -----------------------------
+# Admin: List users (paginated, searchable)
+# -----------------------------
+@admin_bp.route("/users", methods=["GET"])
+@require_admin_role
+def list_users():
+    try:
+        limit = int(request.args.get("limit", 10))
+        offset = int(request.args.get("offset", 0))
+        query = request.args.get("query", "").strip()
+
+        # Build filter
+        mongo_filter = {}
+        if query:
+            regex = {"$regex": query, "$options": "i"}
+            mongo_filter = {"$or": [{"username": regex}, {"email": regex}]}
+
+        users_col = beehive.users
+        total_count = users_col.count_documents(mongo_filter)
+
+        cursor = users_col.find(mongo_filter).skip(offset).limit(limit)
+
+        users = []
+        for u in cursor:
+            users.append({
+                "id": str(u.get("_id")),
+                "user_id": str(u.get("_id")),
+                "name": u.get("username") or u.get("email") or "",
+                "email": u.get("email", ""),
+                "role": u.get("role", "user"),
+                "lastActive": u.get("last_active") or u.get("last_seen") or None,
+                "status": u.get("status", "active"),
+                "image": u.get("avatar_url", ""),
+                "clerkId": u.get("clerk_id", ""),
+            })
+
+        return jsonify({"users": users, "totalCount": total_count}), 200
+    except Exception:
+        logger.error("Error listing users", exc_info=True)
+        return jsonify({"error": "Failed to list users"}), 500
+
+
+@admin_bp.route("/users/only-users", methods=["GET"])
+@require_admin_role
+def list_only_users():
+    try:
+        users_col = beehive.users
+        cursor = users_col.find({}, {"_id": 1, "username": 1, "email": 1}).limit(100)
+        users = []
+        for u in cursor:
+            users.append({
+                "id": str(u.get("_id")),
+                "name": u.get("username") or u.get("email") or "",
+            })
+        return jsonify({"users": users}), 200
+    except Exception:
+        logger.error("Error listing only-users", exc_info=True)
+        return jsonify({"error": "Failed to list users"}), 500
