@@ -29,7 +29,7 @@ const allowedFileTypes = [
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
@@ -52,10 +52,14 @@ const Upload = () => {
   const imagePreview = useObjectUrl(selectedImage);
   const audioUrl = useObjectUrl(selectedVoiceNote);
   const hasHydratedDraft = useRef(false);
-  const getDraftKey = useCallback(() => `uploadDraft:${user?.id ?? 'anon'}`, [user?.id]);
+  const getDraftKey = useCallback(() => {
+    if (!isLoaded) return null;
+    return `uploadDraft:${user?.id ?? 'anon'}`;
+  }, [user?.id, isLoaded]);
 
   useEffect(() => {
     const key = getDraftKey();
+    if (!key) return;
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return;
@@ -79,6 +83,7 @@ const Upload = () => {
   useEffect(() => {
     if (!hasHydratedDraft.current) return;
     const key = getDraftKey();
+    if (!key) return;
     const isEmpty =
       !title.trim() &&
       !description.trim() &&
@@ -383,7 +388,8 @@ const MAX_SIZE:Record<string,number>={
         throw new Error(data.error || 'Upload failed');
       }
 
-      localStorage.removeItem(getDraftKey());
+      const key = getDraftKey();
+      if (key) localStorage.removeItem(key);
       toast.success('Upload successful!');
       navigate('/gallery');
     } catch (error) {
