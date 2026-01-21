@@ -575,7 +575,7 @@ const MAX_SIZE:Record<string,number>={
 
           <button
             type="submit"
-            disabled={!selectedImage || isUploading || isAnalyzing || (sentiment === 'custom' && !customSentiment.trim())}
+            disabled={!selectedImage || isUploading || isAnalyzing || (sentiment === 'custom' && !customSentiment.trim()) || !title.trim() || !description.trim()}
             className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Uploading...' : 'Upload Media'}
