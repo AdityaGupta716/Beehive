@@ -1,4 +1,4 @@
- # Grant Admin Access for Local Development
+# Grant Admin Access for Local Development
 
  Admin access for local development can be configured in one of two ways:
 

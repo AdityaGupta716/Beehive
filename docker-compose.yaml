@@ -31,7 +31,6 @@ services:
     ports:
       - "5173:5173"
     environment:
-      # Frontend does not require a Clerk publishable key for JWT-based auth
     depends_on:
       - flask-app
     volumes:

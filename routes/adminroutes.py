@@ -14,11 +14,7 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 from database.databaseConfig import beehive
 
-
-
-# -----------------------------
 # Admin: Get user uploads
-# -----------------------------
 @admin_bp.route("/user_uploads/<user_id>")
 @require_admin_role
 def admin_user_images_show(user_id):
@@ -36,10 +32,7 @@ def admin_user_images_show(user_id):
         logger.error("Error fetching user uploads", exc_info=True)
         return jsonify({"error": "Failed to fetch user uploads"}), 500
 
-
-# -----------------------------
 # Admin: Dashboard
-# -----------------------------
 @admin_bp.route("/dashboard", methods=["GET"])
 @require_admin_role
 def get_dashboard_data():
@@ -58,10 +51,7 @@ def get_dashboard_data():
         logger.error("Error fetching dashboard data", exc_info=True)
         return jsonify({"error": "Failed to fetch dashboard data"}), 500
 
-
-# -----------------------------
 # Admin: Analytics (Uploads only)
-# -----------------------------
 @admin_bp.route("/analytics", methods=["GET"])
 @require_admin_role
 def get_all_analytics():
@@ -81,10 +71,8 @@ def get_all_analytics():
         logger.error("Error fetching analytics", exc_info=True)
         return jsonify({"error": "Failed to fetch analytics data"}), 500
 
-
-# -----------------------------
 # Admin: List users (paginated, searchable)
-# -----------------------------
+
 @admin_bp.route("/users", methods=["GET"])
 @require_admin_role
 def list_users():

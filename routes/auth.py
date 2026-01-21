@@ -86,7 +86,7 @@ def verify_otp():
 
         expires_at = record["expires_at"]
 
-        # 🔑 FIX: normalize datetime
+        # FIX: normalize datetime
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
