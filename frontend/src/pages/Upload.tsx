@@ -51,6 +51,53 @@ const Upload = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const imagePreview = useObjectUrl(selectedImage);
   const audioUrl = useObjectUrl(selectedVoiceNote);
+  const hasHydratedDraft = useRef(false);
+  const getDraftKey = useCallback(() => `uploadDraft:${user?.id ?? 'anon'}`, [user?.id]);
+
+  useEffect(() => {
+    const key = getDraftKey();
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<{
+        title: string;
+        description: string;
+        sentiment: SentimentType;
+        customSentiment: string;
+      }>;
+      if (draft.title) setTitle(draft.title);
+      if (draft.description) setDescription(draft.description);
+      if (draft.sentiment) setSentiment(draft.sentiment);
+      if (draft.customSentiment) setCustomSentiment(draft.customSentiment);
+    } catch (err) {
+      console.warn('Failed to load upload draft', err);
+    } finally {
+      hasHydratedDraft.current = true;
+    }
+  }, [getDraftKey]);
+
+  useEffect(() => {
+    if (!hasHydratedDraft.current) return;
+    const key = getDraftKey();
+    const isEmpty =
+      !title.trim() &&
+      !description.trim() &&
+      sentiment === 'neutral' &&
+      !customSentiment.trim();
+
+    if (isEmpty) {
+      localStorage.removeItem(key);
+      return;
+    }
+
+    const draft = {
+      title,
+      description,
+      sentiment,
+      customSentiment,
+    };
+    localStorage.setItem(key, JSON.stringify(draft));
+  }, [title, description, sentiment, customSentiment, getDraftKey]);
 
     useEffect(() => {
     if (!isRecording) return;
@@ -336,6 +383,7 @@ const MAX_SIZE:Record<string,number>={
         throw new Error(data.error || 'Upload failed');
       }
 
+      localStorage.removeItem(getDraftKey());
       toast.success('Upload successful!');
       navigate('/gallery');
     } catch (error) {
