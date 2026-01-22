@@ -75,7 +75,7 @@ def verify_otp():
 
         record = db.email_otps.find_one({
             "email": email,
-            "otp": {"$in": [otp, str(otp), int(otp)]}
+            "otp": str(otp)
         })
 
         if not record:
