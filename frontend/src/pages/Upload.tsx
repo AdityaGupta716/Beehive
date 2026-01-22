@@ -148,30 +148,29 @@ const Upload = () => {
     }
   },[aiBlock, clerk]);
 
-const MAX_SIZE:Record<string,number>={
-"image/jpeg": 10 * 1024 * 1024, 
-  "image/png": 10 * 1024 * 1024,
-  "image/webp": 10 * 1024 * 1024,
-  "image/gif": 8 * 1024 * 1024,   
-  "image/heic": 15 * 1024 * 1024,
-  "application/pdf": 25 * 1024 * 1024,
-};
+const handleImageProcessing = useCallback((file: File) => {
+  const MAX_SIZE: Record<string, number> = {
+    "image/jpeg": 10 * 1024 * 1024,
+    "image/png": 10 * 1024 * 1024,
+    "image/webp": 10 * 1024 * 1024,
+    "image/gif": 8 * 1024 * 1024,
+    "image/heif": 15 * 1024 * 1024,
+    "application/pdf": 25 * 1024 * 1024,
+  };
 
+  if (!allowedFileTypes.includes(file.type)) {
+    toast.error('Invalid file type. Please upload an image or PDF.');
+    return;
+  }
 
-  const handleImageProcessing = useCallback((file: File) => {
-    if (!allowedFileTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload an image or PDF.');
-      return;
-    }
+  const maxSize = MAX_SIZE[file.type];
+  if (maxSize && file.size > maxSize) {
+    toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
+    return;
+  }
 
-    const maxSize=MAX_SIZE[file.type];
-    if(maxSize && file.size > maxSize){
-      toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
-      return;
-    }
-
-    setSelectedImage(file);
-  }, [MAX_SIZE]);
+  setSelectedImage(file);
+}, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
