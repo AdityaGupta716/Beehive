@@ -11,7 +11,7 @@ from database.databaseConfig import beehive
 
 auth_bp = Blueprint("auth", __name__)
 
-# HELPER: CREATE EMAIL OTP
+# Create EMAIL OTP
 def create_email_otp(email: str) -> str:
     otp = str(random.randint(100000, 999999))
 
@@ -27,7 +27,7 @@ def create_email_otp(email: str) -> str:
     return otp
 
 
-# REQUEST OTP (SIGNUP)
+# REQUEST OTP 
 @auth_bp.route("/request-otp", methods=["POST"])
 def request_otp():
     data = request.get_json(force=True)
@@ -38,12 +38,11 @@ def request_otp():
 
     otp = create_email_otp(email)
 
-    # Try to send the OTP via email if mail is configured
+    # send the OTP via email
     try:
         mail_username = current_app.config.get("MAIL_USERNAME")
         mail_server = current_app.config.get("MAIL_SERVER")
         if mail_username and mail_server:
-            # Import here to avoid circular imports at module import time
             from flask_mail import Message
             from app import mail
 
@@ -53,13 +52,11 @@ def request_otp():
             mail.send(msg)
             return jsonify({"message": "OTP sent"}), 200
         else:
-            # Mail not configured — fall back to printing for dev
             current_app.logger.info("MAIL not configured, printing OTP to console")
             print("EMAIL OTP:", otp)
             return jsonify({"message": "OTP stored (mail not configured)"}), 200
     except Exception as e:
         current_app.logger.exception("Failed to send OTP email: %s", e)
-        # Still return success to avoid leaking whether email exists; but inform admin in logs
         return jsonify({"message": "OTP stored (failed to send email)"}), 200
 
 
