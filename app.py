@@ -120,7 +120,6 @@ except Exception as e:
 _FALLBACK_MAGIC = None
 
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
-# SECURITY FIX: Use environment variable for secret key
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if (
     not app.secret_key
@@ -425,7 +424,6 @@ def analyze_media():
     image_file = request.files.get("image")
     audio_file = request.files.get("audio")
 
-    # If Google Generative AI isn't configured, return a clear error
     if not genai_configured:
         return jsonify({"error": "AI analysis not configured on server. Set a valid GOOGLE_API_KEY."}), 503
 

@@ -14,7 +14,6 @@ const parseJwt = (token: string | null): any | null => {
   if (!token) return null;
   try {
     const base64 = token.split('.')[1];
-    // handle base64url
     const padded = base64.replace(/-/g, '+').replace(/_/g, '/');
     const decoded = atob(padded);
     const json = decodeURIComponent(
@@ -34,7 +33,6 @@ const getUserFromToken = (): JWTUser | null => {
   if (typeof window === 'undefined') return null;
   const token = getToken();
   const payload = parseJwt(token);
-  // payload may directly be the user object or contain a `user` field depending on how your JWT is issued
   return (payload?.user ?? payload) as JWTUser | null;
 };
 
