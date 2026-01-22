@@ -79,8 +79,8 @@ app.config.from_object(Config)
 
 app.config.update(
     MAIL_SERVER=os.getenv("MAIL_SERVER"),
-    MAIL_PORT=int(os.getenv("MAIL_PORT")),
-    MAIL_USE_TLS=os.getenv("MAIL_USE_TLS") == "true",
+    MAIL_PORT=int(os.getenv("MAIL_PORT") or 587),
+    MAIL_USE_TLS=os.getenv("MAIL_USE_TLS", "true").lower() == "true",
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
 )
