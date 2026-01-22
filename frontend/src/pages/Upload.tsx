@@ -163,8 +163,8 @@ const Upload = () => {
       return;
     }
 
-    const maxSize = MAX_SIZE[file.type];
-    if (maxSize && file.size > maxSize) {
+    const maxSize=MAX_SIZE[file.type];
+    if(maxSize && file.size > maxSize){
       toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
       return;
     }
