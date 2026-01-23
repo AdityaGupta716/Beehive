@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useClerk } from '@clerk/clerk-react';
 import {
   CalendarIcon,
   ChartBarIcon,
@@ -132,8 +133,9 @@ const Analytics = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const clerk = useClerk();
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -155,11 +157,11 @@ const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clerk.session]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   if (loading) return (
     <div className="flex justify-center items-center h-32">

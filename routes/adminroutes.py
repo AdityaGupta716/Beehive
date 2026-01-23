@@ -7,6 +7,7 @@ from database.userdatahandler import (
     get_upload_analytics
 )
 from utils.logger import Logger
+from utils.sanitize import sanitize_api_query
 
 logger = Logger.get_logger("adminroutes")
 
