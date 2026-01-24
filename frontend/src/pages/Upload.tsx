@@ -26,8 +26,6 @@ const allowedFileTypes = [
   'application/pdf',
 ];
 
-
-
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
