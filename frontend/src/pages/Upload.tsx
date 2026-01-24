@@ -206,7 +206,7 @@ const Upload = () => {
     "image/png": 10 * 1024 * 1024,
     "image/webp": 10 * 1024 * 1024,
     "image/gif": 8 * 1024 * 1024,
-    "image/heic": 15 * 1024 * 1024,
+    "image/heif": 15 * 1024 * 1024,
     "application/pdf": 25 * 1024 * 1024,
   };
 
@@ -542,8 +542,8 @@ const Upload = () => {
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
                   className={`flex items-center space-x-2 ${isRecording
-                      ? 'bg-red-500 hover:bg-red-600'
-                      : 'bg-yellow-400 hover:bg-yellow-500'
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-yellow-400 hover:bg-yellow-500'
                     } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
                 >
                   {isRecording ? (
