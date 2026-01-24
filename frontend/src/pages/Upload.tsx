@@ -70,10 +70,10 @@ const Upload = () => {
         sentiment: SentimentType;
         customSentiment: string;
       }>;
-      if (draft.title) setTitle(draft.title);
-      if (draft.description) setDescription(draft.description);
-      if (draft.sentiment) setSentiment(draft.sentiment);
-      if (draft.customSentiment) setCustomSentiment(draft.customSentiment);
+      if (draft.title !== undefined) setTitle(draft.title);
+      if (draft.description !== undefined) setDescription(draft.description);
+      if (draft.sentiment !== undefined) setSentiment(draft.sentiment);
+      if (draft.customSentiment !== undefined) setCustomSentiment(draft.customSentiment);
     } catch (err) {
       console.warn('Failed to load upload draft', err);
     } finally {
