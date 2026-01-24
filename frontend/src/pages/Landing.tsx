@@ -507,8 +507,8 @@ const Landing = () => {
                 >
                   {feature.icon}
                 </motion.div>
-                <h3 className="text-white text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
+                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-700 dark:text-gray-300">{feature.description}</p>
               </Spotlightcard>
             ))}
           </motion.div>
