@@ -38,7 +38,7 @@ const MAX_SIZE: Record<string, number> = {
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
@@ -52,16 +52,69 @@ const Upload = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false); 
-  const [isDragActive, setIsDragActive] = useState(false); 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const imagePreview = useObjectUrl(selectedImage);
   const audioUrl = useObjectUrl(selectedVoiceNote);
+  const hasHydratedDraft = useRef(false);
+  const getDraftKey = useCallback(() => {
+    if (!isLoaded) return null;
+    return `uploadDraft:${user?.id ?? 'anon'}`;
+  }, [user?.id, isLoaded]);
 
-    useEffect(() => {
+  useEffect(() => {
+    if (!isLoaded) return; // wait until Clerk user is ready
+    const key = getDraftKey();
+    if (!key) return;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<{
+        title: string;
+        description: string;
+        sentiment: SentimentType;
+        customSentiment: string;
+      }>;
+      if (draft.title !== undefined) setTitle(draft.title);
+      if (draft.description !== undefined) setDescription(draft.description);
+      if (draft.sentiment !== undefined) setSentiment(draft.sentiment);
+      if (draft.customSentiment !== undefined) setCustomSentiment(draft.customSentiment);
+    } catch (err) {
+      console.warn('Failed to load upload draft', err);
+    } finally {
+      hasHydratedDraft.current = true;
+    }
+  }, [getDraftKey, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded || !hasHydratedDraft.current) return;
+    const key = getDraftKey();
+    if (!key) return;
+    const isEmpty =
+      !title.trim() &&
+      !description.trim() &&
+      sentiment === 'neutral' &&
+      !customSentiment.trim();
+
+    if (isEmpty) {
+      localStorage.removeItem(key);
+      return;
+    }
+
+    const draft = {
+      title,
+      description,
+      sentiment,
+      customSentiment,
+    };
+    localStorage.setItem(key, JSON.stringify(draft));
+  }, [title, description, sentiment, customSentiment, getDraftKey, isLoaded]);
+
+  useEffect(() => {
     if (!isRecording) return;
 
     const interval = window.setInterval(() => {
@@ -92,7 +145,7 @@ const Upload = () => {
 
   const aiBlock = useCallback((error: unknown): boolean => {
     const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-    
+
     const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
     if (isBlocked) {
       toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
@@ -155,7 +208,17 @@ const Upload = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  },[aiBlock, clerk]);
+  }, [aiBlock, clerk]);
+
+  const MAX_SIZE: Record<string, number> = {
+    "image/jpeg": 10 * 1024 * 1024,
+    "image/png": 10 * 1024 * 1024,
+    "image/webp": 10 * 1024 * 1024,
+    "image/gif": 8 * 1024 * 1024,
+    "image/heif": 15 * 1024 * 1024,
+    "application/pdf": 25 * 1024 * 1024,
+  };
+
 
   const handleImageProcessing = useCallback((file: File) => {
     if (!allowedFileTypes.includes(file.type)) {
@@ -163,8 +226,8 @@ const Upload = () => {
       return;
     }
 
-    const maxSize=MAX_SIZE[file.type];
-    if(maxSize && file.size > maxSize){
+    const maxSize = MAX_SIZE[file.type];
+    if (maxSize && file.size > maxSize) {
       toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
       return;
     }
@@ -181,7 +244,7 @@ const Upload = () => {
     if (isPreviewing) {
       window.addEventListener('keydown', handleKeyDown);
     }
-  return () => {
+    return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isPreviewing]);
@@ -192,17 +255,17 @@ const Upload = () => {
     setIsDragActive(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => { 
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragActive(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => { 
+  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragActive(false); 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) { 
+    setIsDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file) {
         handleImageProcessing(file);
@@ -217,7 +280,7 @@ const Upload = () => {
     }
   };
 
- 
+
 
   const startRecording = async () => {
     try {
@@ -249,7 +312,7 @@ const Upload = () => {
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      
+
     } catch (error) {
       console.error('Error accessing microphone:', error);
       toast.error('Error accessing microphone');
@@ -313,7 +376,7 @@ const Upload = () => {
       formData.append('title', title);
       formData.append('description', description);
       formData.append('sentiment', sentiment === 'custom' ? customSentiment : sentiment);
-      
+
       // Add audio data if available
       if (selectedVoiceNote) {
         formData.append('audio', selectedVoiceNote);
@@ -335,6 +398,8 @@ const Upload = () => {
         throw new Error(data.error || 'Upload failed');
       }
 
+      const key = getDraftKey();
+      if (key) localStorage.removeItem(key);
       toast.success('Upload successful!');
       navigate('/gallery');
     } catch (error) {
@@ -389,15 +454,18 @@ const Upload = () => {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                > 
+                >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <CloudArrowUpIcon className="w-10 h-10 text-gray-400 mb-3" />
                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                       PNG, JPG, GIF, WEBP, HEIF or PDF
                     </p>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 space-y-1">
+                      <p>Max sizes: JPEG/PNG/WEBP 10MB, GIF 8MB, HEIF 15MB, PDF 25MB</p>
+                    </div>
                   </div>
                   <input
                     type="file"
@@ -428,7 +496,7 @@ const Upload = () => {
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
                 required
-                disabled={isAnalyzing}
+                disabled={!hasHydratedDraft.current || isAnalyzing}
               />
             </div>
 
@@ -439,7 +507,7 @@ const Upload = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 min-h-[100px] disabled:opacity-50"
                 required
-                disabled={isAnalyzing}
+                disabled={!hasHydratedDraft.current || isAnalyzing}
               />
             </div>
 
@@ -450,7 +518,7 @@ const Upload = () => {
                   value={sentiment}
                   onChange={(e) => setSentiment(e.target.value as SentimentType)}
                   className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
-                  disabled={isAnalyzing}
+                  disabled={!hasHydratedDraft.current || isAnalyzing}
                 >
                   <option value="positive">Positive</option>
                   <option value="neutral">Neutral</option>
@@ -482,11 +550,10 @@ const Upload = () => {
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
-                  className={`flex items-center space-x-2 ${
-                    isRecording
-                      ? 'bg-red-500 hover:bg-red-600'
-                      : 'bg-yellow-400 hover:bg-yellow-500'
-                  } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
+                  className={`flex items-center space-x-2 ${isRecording
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-yellow-400 hover:bg-yellow-500'
+                    } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
                 >
                   {isRecording ? (
                     <>
@@ -548,7 +615,7 @@ const Upload = () => {
                   </div>
                 )}
               </div>
-              
+
               {selectedVoiceNote && (
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Voice note recorded. Click play to preview or the refresh icon to record again.
@@ -571,7 +638,7 @@ const Upload = () => {
 
           <button
             type="submit"
-            disabled={!selectedImage || isUploading || isAnalyzing}
+            disabled={!selectedImage || isUploading || isAnalyzing || (sentiment === 'custom' && !customSentiment.trim()) || !title.trim() || !description.trim()}
             className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Uploading...' : 'Upload Media'}
