@@ -13,7 +13,7 @@ auth_bp = Blueprint("auth", __name__)
 
 # Create EMAIL OTP
 def create_email_otp(email: str) -> str:
-    otp = str(random.randint(100000, 999999))
+    otp = str(secrets.randbelow(900000) + 100000)
 
     # Remove old OTPs
     db.email_otps.delete_many({"email": email})
