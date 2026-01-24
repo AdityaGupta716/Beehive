@@ -26,14 +26,7 @@ const allowedFileTypes = [
   'application/pdf',
 ];
 
-const MAX_SIZE: Record<string, number> = {
-  'image/jpeg': 10 * 1024 * 1024,
-  'image/png': 10 * 1024 * 1024,
-  'image/webp': 10 * 1024 * 1024,
-  'image/gif': 8 * 1024 * 1024,
-  'image/heif': 15 * 1024 * 1024,
-  'application/pdf': 25 * 1024 * 1024,
-};
+
 
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
