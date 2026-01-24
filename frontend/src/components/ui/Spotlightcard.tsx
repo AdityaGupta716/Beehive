@@ -1,6 +1,10 @@
 import React, { useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 
+// Spotlight color constants
+const DARK_THEME_SPOTLIGHT_COLOR = "rgba(255, 255, 255, 0.25)";
+const LIGHT_THEME_SPOTLIGHT_COLOR = "rgba(253, 224, 71, 0.35)";
+
 interface Position {
   x: number;
   y: number;
@@ -23,8 +27,8 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
   const [opacity, setOpacity] = useState<number>(0);
 
   const defaultSpotlightColor = theme === "dark"
-    ? "rgba(255, 255, 255, 0.25)"
-    : "rgba(253, 224, 71, 0.35)";
+    ? DARK_THEME_SPOTLIGHT_COLOR
+    : LIGHT_THEME_SPOTLIGHT_COLOR;
   const resolvedSpotlightColor = spotlightColor ?? defaultSpotlightColor;
 
   const handleMouseMove: React.MouseEventHandler<HTMLDivElement> = (e) => {
