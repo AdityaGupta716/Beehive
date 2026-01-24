@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-this")
+    JWT_SECRET = os.getenv("JWT_SECRET")
     JWT_ALGORITHM = "HS256"
     JWT_EXPIRE_HOURS = 24
 
