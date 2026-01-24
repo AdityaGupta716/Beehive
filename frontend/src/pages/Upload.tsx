@@ -43,8 +43,8 @@ const Upload = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false); 
-  const [isDragActive, setIsDragActive] = useState(false); 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -105,7 +105,7 @@ const Upload = () => {
     localStorage.setItem(key, JSON.stringify(draft));
   }, [title, description, sentiment, customSentiment, getDraftKey, isLoaded]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!isRecording) return;
 
     const interval = window.setInterval(() => {
@@ -136,7 +136,7 @@ const Upload = () => {
 
   const aiBlock = useCallback((error: unknown): boolean => {
     const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-    
+
     const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
     if (isBlocked) {
       toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
@@ -199,16 +199,16 @@ const Upload = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  },[aiBlock, clerk]);
+  }, [aiBlock, clerk]);
 
-const MAX_SIZE:Record<string,number>={
-"image/jpeg": 10 * 1024 * 1024, 
-  "image/png": 10 * 1024 * 1024,
-  "image/webp": 10 * 1024 * 1024,
-  "image/gif": 8 * 1024 * 1024,   
-  "image/heic": 15 * 1024 * 1024,
-  "application/pdf": 25 * 1024 * 1024,
-};
+  const MAX_SIZE: Record<string, number> = {
+    "image/jpeg": 10 * 1024 * 1024,
+    "image/png": 10 * 1024 * 1024,
+    "image/webp": 10 * 1024 * 1024,
+    "image/gif": 8 * 1024 * 1024,
+    "image/heic": 15 * 1024 * 1024,
+    "application/pdf": 25 * 1024 * 1024,
+  };
 
 
   const handleImageProcessing = useCallback((file: File) => {
@@ -217,8 +217,8 @@ const MAX_SIZE:Record<string,number>={
       return;
     }
 
-    const maxSize=MAX_SIZE[file.type];
-    if(maxSize && file.size > maxSize){
+    const maxSize = MAX_SIZE[file.type];
+    if (maxSize && file.size > maxSize) {
       toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
       return;
     }
@@ -235,7 +235,7 @@ const MAX_SIZE:Record<string,number>={
     if (isPreviewing) {
       window.addEventListener('keydown', handleKeyDown);
     }
-  return () => {
+    return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isPreviewing]);
@@ -246,17 +246,17 @@ const MAX_SIZE:Record<string,number>={
     setIsDragActive(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => { 
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragActive(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => { 
+  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragActive(false); 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) { 
+    setIsDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file) {
         handleImageProcessing(file);
@@ -271,7 +271,7 @@ const MAX_SIZE:Record<string,number>={
     }
   };
 
- 
+
 
   const startRecording = async () => {
     try {
@@ -303,7 +303,7 @@ const MAX_SIZE:Record<string,number>={
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      
+
     } catch (error) {
       console.error('Error accessing microphone:', error);
       toast.error('Error accessing microphone');
@@ -367,7 +367,7 @@ const MAX_SIZE:Record<string,number>={
       formData.append('title', title);
       formData.append('description', description);
       formData.append('sentiment', sentiment === 'custom' ? customSentiment : sentiment);
-      
+
       // Add audio data if available
       if (selectedVoiceNote) {
         formData.append('audio', selectedVoiceNote);
@@ -445,7 +445,7 @@ const MAX_SIZE:Record<string,number>={
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                > 
+                >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <CloudArrowUpIcon className="w-10 h-10 text-gray-400 mb-3" />
                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
@@ -487,7 +487,7 @@ const MAX_SIZE:Record<string,number>={
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
                 required
-                disabled={isAnalyzing}
+                disabled={!hasHydratedDraft.current || isAnalyzing}
               />
             </div>
 
@@ -498,7 +498,7 @@ const MAX_SIZE:Record<string,number>={
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 min-h-[100px] disabled:opacity-50"
                 required
-                disabled={isAnalyzing}
+                disabled={!hasHydratedDraft.current || isAnalyzing}
               />
             </div>
 
@@ -509,7 +509,7 @@ const MAX_SIZE:Record<string,number>={
                   value={sentiment}
                   onChange={(e) => setSentiment(e.target.value as SentimentType)}
                   className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
-                  disabled={isAnalyzing}
+                  disabled={!hasHydratedDraft.current || isAnalyzing}
                 >
                   <option value="positive">Positive</option>
                   <option value="neutral">Neutral</option>
@@ -541,11 +541,10 @@ const MAX_SIZE:Record<string,number>={
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
-                  className={`flex items-center space-x-2 ${
-                    isRecording
+                  className={`flex items-center space-x-2 ${isRecording
                       ? 'bg-red-500 hover:bg-red-600'
                       : 'bg-yellow-400 hover:bg-yellow-500'
-                  } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
+                    } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
                 >
                   {isRecording ? (
                     <>
@@ -607,7 +606,7 @@ const MAX_SIZE:Record<string,number>={
                   </div>
                 )}
               </div>
-              
+
               {selectedVoiceNote && (
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Voice note recorded. Click play to preview or the refresh icon to record again.
