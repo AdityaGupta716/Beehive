@@ -632,7 +632,7 @@ const Landing = () => {
       
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900 text-black dark:text-white py-12 px-4 relative overflow-hidden transition-colors duration-200">
+      <footer className="bg-white dark:bg-gray-900 py-12 px-4 relative overflow-hidden transition-colors duration-200">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
           <motion.div
             initial={{ opacity: 0 }}
