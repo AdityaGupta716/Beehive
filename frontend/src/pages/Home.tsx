@@ -1,43 +1,9 @@
 import { Link } from 'react-router-dom';
 import { CloudArrowUpIcon, PhotoIcon } from '@heroicons/react/24/outline';
-
-type JWTUser = {
-  firstName?: string;
-  publicMetadata?: {
-    role?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
-
-const parseJwt = (token: string | null): any | null => {
-  if (!token) return null;
-  try {
-    const base64 = token.split('.')[1];
-    const padded = base64.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(padded);
-    const json = decodeURIComponent(
-      Array.prototype.map
-        .call(decoded, (c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-};
-
-import { getToken } from '../utils/auth';
-
-const getUserFromToken = (): JWTUser | null => {
-  if (typeof window === 'undefined') return null;
-  const token = getToken();
-  const payload = parseJwt(token);
-  return (payload?.user ?? payload) as JWTUser | null;
-};
+import { useAuth } from '../hooks/useAuth';
 
 const Home = () => {
-  const user = getUserFromToken();
+  const { user } = useAuth();
 
   return (
     <div className="py-12">
@@ -77,7 +43,7 @@ const Home = () => {
           </Link>
         </div>
 
-        {user?.publicMetadata?.role === 'admin' && (
+        {user?.role === 'admin' && (
           <div className="mt-12">
             <h2 className="text-2xl font-semibold mb-4">Admin Quick Access</h2>
             <div className="flex justify-center space-x-4">

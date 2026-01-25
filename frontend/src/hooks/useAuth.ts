@@ -49,7 +49,7 @@ export const useAuth = () => {
 
   const isAuthenticated = () => {
     if (!user) return false;
-    return user.exp * 1000 > Date.now(); // token not expired
+    return (user.exp ?? 0) * 1000 > Date.now(); // token not expired
   };
 
   const isAdmin = () => {

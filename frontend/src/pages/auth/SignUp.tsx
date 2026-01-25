@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveToken } from "../../utils/auth";
 import { apiFetch } from "../../utils/apiFetch";
@@ -109,23 +109,89 @@ const SignUpPage = () => {
 
   const googleSignIn = async () => {
   setError("");
+  // Trigger Google Identity Services prompt (One Tap / account chooser).
+  // The actual credential will be delivered to `handleCredentialResponse` below.
+  if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+    setError("Google client ID not configured");
+    return;
+  }
+
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    try {
+      window.google.accounts.id.prompt();
+    } catch (err: any) {
+      setError(err?.message || "Google sign-in prompt failed");
+    }
+  } else {
+    setError("Google auth not loaded yet; try again");
+  }
+};
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
+const handleCredentialResponse = async (response: any) => {
+  setError("");
+  setLoading(true);
 
   try {
+    // Send the ID token (JWT) to the backend for verification and signin/signup.
     const data = await apiFetch("/api/auth/google", {
       method: "POST",
-      body: JSON.stringify({ email: "test@gmail.com", name: "Google User" }),
+      body: JSON.stringify({ id_token: response?.credential }),
     });
 
     saveToken(data.access_token);
 
-    data.role === "admin"
-      ? navigate("/admin")
-      : navigate("/dashboard");
-
+    data.role === "admin" ? navigate("/admin") : navigate("/dashboard");
   } catch (err: any) {
     setError(err.message || "Google sign-in failed");
+  } finally {
+    setLoading(false);
   }
 };
+
+useEffect(() => {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  if (!clientId) return;
+
+  // If gsi script already present and initialized, skip adding again.
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    try {
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleCredentialResponse,
+      });
+    } catch (e) {
+      // ignore initialize errors
+    }
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = "https://accounts.google.com/gsi/client";
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    try {
+      window.google?.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleCredentialResponse,
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  document.head.appendChild(script);
+
+  return () => {
+    // don't remove script automatically; leaving it is safe if other components use it
+  };
+}, []);
 
   return (
     // Added text-gray-900 to ensure text visibility across all systems

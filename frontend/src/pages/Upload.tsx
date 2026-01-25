@@ -30,13 +30,8 @@ const allowedFileTypes = [
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
-<<<<<<< HEAD
-  const tokenFromStorage = getToken();
-  const { user } = useAuth();
-=======
-  const { user, isLoaded } = useUser();
-  const clerk = useClerk();
->>>>>>> origin/dev
+const tokenFromStorage = getToken();
+const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -59,12 +54,10 @@ const Upload = () => {
   const audioUrl = useObjectUrl(selectedVoiceNote);
   const hasHydratedDraft = useRef(false);
   const getDraftKey = useCallback(() => {
-    if (!isLoaded) return null;
     return `uploadDraft:${user?.id ?? 'anon'}`;
-  }, [user?.id, isLoaded]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (!isLoaded) return; // wait until Clerk user is ready
     const key = getDraftKey();
     if (!key) return;
     try {
@@ -85,10 +78,10 @@ const Upload = () => {
     } finally {
       hasHydratedDraft.current = true;
     }
-  }, [getDraftKey, isLoaded]);
+  }, [getDraftKey]);
 
   useEffect(() => {
-    if (!isLoaded || !hasHydratedDraft.current) return;
+    if (!hasHydratedDraft.current) return;
     const key = getDraftKey();
     if (!key) return;
     const isEmpty =
@@ -109,7 +102,7 @@ const Upload = () => {
       customSentiment,
     };
     localStorage.setItem(key, JSON.stringify(draft));
-  }, [title, description, sentiment, customSentiment, getDraftKey, isLoaded]);
+  }, [title, description, sentiment, customSentiment, getDraftKey]);
 
   useEffect(() => {
     if (!isRecording) return;
