@@ -224,7 +224,7 @@ const Upload = () => {
     }
 
     setSelectedImage(file);
-  }, [MAX_SIZE]);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
