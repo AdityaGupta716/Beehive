@@ -2,12 +2,9 @@ import jwt
 import datetime
 from functools import wraps
 from flask import request, jsonify, current_app
-from utils.jwt_auth import verify_jwt
 
-import jwt
-import datetime
-from flask import current_app
 
+# JWT creation
 def create_access_token(user_id, role="user"):
     expire_hours = current_app.config.get("JWT_EXPIRE_HOURS", 24)
     jwt_secret = current_app.config.get("JWT_SECRET", "dev-secret-change-this")
@@ -20,14 +17,10 @@ def create_access_token(user_id, role="user"):
         "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=expire_hours),
     }
 
-    return jwt.encode(
-        payload,
-        jwt_secret,
-        algorithm=jwt_algorithm,
-    )
+    return jwt.encode(payload, jwt_secret, algorithm=jwt_algorithm)
 
 
-
+# JWT verification
 def verify_jwt(token):
     try:
         return jwt.decode(
@@ -41,6 +34,7 @@ def verify_jwt(token):
         raise ValueError("Invalid token")
 
 
+# Auth decorator
 def require_auth(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -66,39 +60,12 @@ def require_auth(f):
     return wrapper
 
 
+# Admin-only decorator
 def require_admin_role(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
 
-        if not auth_header:
-            return jsonify({"error": "Authorization header missing"}), 401
-
-        token = auth_header.replace("Bearer ", "")
-
-        try:
-            claims = verify_jwt(token)
-        except ValueError:
-            return jsonify({"error": "Invalid or expired token"}), 401
-
-        if claims.get("role") != "admin":
-            return jsonify({"error": "Admin access required"}), 403
-
-        request.current_user = {
-            "id": claims["sub"],
-            "role": claims["role"],
-        }
-
-        return f(*args, **kwargs)
-
-    return wrapper
-
-def require_admin_role(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        from flask import request
-
-        auth_header = request.headers.get("Authorization")
         if not auth_header:
             return jsonify({"error": "Authorization header missing"}), 401
 

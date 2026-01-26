@@ -60,8 +60,8 @@ from database.userdatahandler import (
     save_notification,
     update_image,
 )
-from decorators import require_admin_role
-from utils.jwt_auth import require_auth
+
+from utils.jwt_auth import require_auth,require_admin_role 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(
     app,

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from decorators import require_admin_role
+from utils.jwt_auth import require_admin_role
 from database.userdatahandler import (
     _get_paginated_images_by_user,
     get_recent_uploads,
