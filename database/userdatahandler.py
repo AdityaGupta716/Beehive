@@ -23,7 +23,7 @@ def create_user(username, email, password, role="user"):
         "email": email,
         "password": hashed_pw,
         "role": role,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
 
     return beehive_user_collection.insert_one(user).inserted_id
