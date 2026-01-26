@@ -191,7 +191,7 @@ const Users = () => {
                               )}
                             </div>
                             <div className="ml-4">
-                              <div className="font-medium">{user.name}</div>
+                              <div className="font-medium">{user.name || 'N/A'}</div>
                               <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {user.email}
                               </div>
