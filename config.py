@@ -6,7 +6,7 @@ load_dotenv()
 class Config:
     JWT_SECRET = os.getenv("JWT_SECRET")
     JWT_ALGORITHM = "HS256"
-    JWT_EXPIRE_HOURS = 24
+    JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", 24))
 
     
     # Flask Configuration
