@@ -632,7 +632,7 @@ const Landing = () => {
       
 
       {/* Footer */}
-      <footer className="bg-black text-white py-12 px-4 relative overflow-hidden">
+      <footer className="bg-white dark:bg-gray-900 py-12 px-4 relative overflow-hidden transition-colors duration-200">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
           <motion.div
             initial={{ opacity: 0 }}
@@ -644,7 +644,7 @@ const Landing = () => {
               <img src="/favicon.png" alt="Beehive Logo" className="h-8 w-8" />
               <span className="text-xl font-bold text-yellow-400">Beehive</span>
             </div>
-            <p className="text-gray-400">Transforming behavioral healthcare through data-driven insights.</p>
+            <p className="text-gray-600 dark:text-gray-400">Transforming behavioral healthcare through data-driven insights.</p>
           </motion.div>
 
           {[
@@ -689,7 +689,7 @@ const Landing = () => {
                   <li key={link.name}>
                     <motion.a
                       href={link.href}
-                      className="text-gray-400 hover:text-yellow-400 transition-colors"
+                      className="text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors"
                       whileHover={{ x: 5 }}
                     >
                       {link.name}
@@ -705,7 +705,7 @@ const Landing = () => {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400"
+          className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-gray-600 dark:text-gray-400"
         >
           <p>© {new Date().getFullYear()} Beehive. All rights reserved.</p>
         </motion.div>
