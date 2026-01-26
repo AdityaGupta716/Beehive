@@ -98,8 +98,7 @@ def list_users():
             users.append({
                 "id": str(u.get("_id")),
                 "user_id": str(u.get("_id")),
-                "name": u.get("username") or u.get("email") or "",
-                "email": u.get("email", ""),
+                "name": u.get("username") or u.get("email") or "Unknown User",
                 "role": u.get("role", "user"),
                 "lastActive": u.get("last_active") or u.get("last_seen") or None,
                 "status": u.get("status", "active"),
