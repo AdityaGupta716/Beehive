@@ -223,7 +223,7 @@ const { user } = useAuth();
     }
 
     setSelectedImage(file);
-  }, [MAX_SIZE]);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

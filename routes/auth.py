@@ -1,7 +1,10 @@
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timedelta, timezone
 import random
+import secrets
 import bcrypt
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from database.databaseConfig import db
 from database.userdatahandler import create_user, get_user_by_username
@@ -216,24 +219,45 @@ def set_password():
 def google_auth():
     data = request.get_json(force=True)
 
-    email = data.get("email")
-    name = data.get("name")
+    id_token_str = data.get("id_token")
+    if not id_token_str:
+        return jsonify({"error": "id_token required"}), 400
 
-    if not email:
-        return jsonify({"error": "Email required"}), 400
+    try:
+        request_adapter = google_requests.Request()
+        client_id = current_app.config.get("GOOGLE_CLIENT_ID")
+        # Verify the token and audience
+        idinfo = id_token.verify_oauth2_token(id_token_str, request_adapter, client_id)
 
+        # idinfo now contains verified claims
+        email = idinfo.get("email")
+        name = idinfo.get("name") or idinfo.get("given_name")
+        sub = idinfo.get("sub")
+
+        if not email:
+            return jsonify({"error": "Email not present in token"}), 400
+
+    except ValueError as e:
+        current_app.logger.exception("Invalid Google ID token: %s", e)
+        return jsonify({"error": "Invalid id_token"}), 401
+
+    # At this point the token is verified; trust the email claim
     user = db.users.find_one({"email": email})
 
     if not user:
         role = "admin" if is_admin_email(email) else "user"
 
-        user_id = create_user(
-            username=name or email.split("@")[0],
-            email=email,
-            password=None,
-            role=role,
-            provider="google"
-        )
+        # Create a minimal Google-backed user (no local password)
+        result = db.users.insert_one({
+            "email": email,
+            "username": name or email.split("@")[0],
+            "password": None,
+            "role": role,
+            "provider": "google",
+            "google_id": sub,
+            "created_at": datetime.now(timezone.utc)
+        })
+        user_id = str(result.inserted_id)
     else:
         user_id = str(user["_id"])
         role = user.get("role", "user")
