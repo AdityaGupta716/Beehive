@@ -172,6 +172,14 @@ const Gallery = () => {
         setLoadingMore(true);
       }
       
+      const handleError = (message: string) => {
+        console.error('Error fetching uploads:', message);
+        if (page === 1) {
+          toast.error('Failed to fetch uploads');
+          setImages([]);
+        }
+      };
+
       const response = await authenticatedFetch(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, {
         method: 'GET',
         headers: {
@@ -188,22 +196,14 @@ const Gallery = () => {
         } catch {
           errorMessage = `HTTP error! status: ${response.status}`;
         }
-        console.error('Error fetching uploads:', errorMessage);
-        if (page === 1) {
-          toast.error('Failed to fetch uploads');
-          setImages([]);
-        }
+        handleError(errorMessage);
         return;
       }
       
       const data = await response.json();
       
       if (data.error) {
-        console.error('Error fetching uploads:', data.error);
-        if (page === 1) {
-          toast.error('Failed to fetch uploads');
-          setImages([]);
-        }
+        handleError(data.error);
         return;
       }
       
