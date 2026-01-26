@@ -689,7 +689,7 @@ const Landing = () => {
                   <li key={link.name}>
                     <motion.a
                       href={link.href}
-                      className="text-gray-600 dark:text-gray-300 hover:text-yellow-700 dark:hover:text-yellow-200 transition-colors"
+                      className="text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors"
                       whileHover={{ x: 5 }}
                     >
                       {link.name}
