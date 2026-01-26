@@ -36,10 +36,12 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install black flake8
+          pip install black==24.10.0 flake8==7.1.1
       
       - name: Run Black
-        run: black --check . || true
+        continue-on-error: true
+        run: black --check .
       
       - name: Run Flake8
-        run: flake8 . || true
+        continue-on-error: true
+        run: flake8 .
