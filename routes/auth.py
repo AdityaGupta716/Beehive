@@ -12,7 +12,6 @@ from utils.roles import is_admin_email
 from utils.jwt_auth import create_access_token
 from database.databaseConfig import beehive
 
-
 auth_bp = Blueprint("auth", __name__)
 
 # Create EMAIL OTP
