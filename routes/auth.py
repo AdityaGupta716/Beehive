@@ -11,6 +11,7 @@ from database.userdatahandler import create_user, get_user_by_username
 from utils.roles import is_admin_email
 from utils.jwt_auth import create_access_token
 from database.databaseConfig import beehive
+from datetime import timezone
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -86,7 +87,7 @@ def verify_otp():
 
         expires_at = record["expires_at"]
 
-        if expires_at.tzinfo is None and expires_at.kind == datetime.datetime.UTC_KIND:
+        if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
         if expires_at < datetime.now(timezone.utc):
