@@ -11,7 +11,7 @@ from database.userdatahandler import create_user, get_user_by_username
 from utils.roles import is_admin_email
 from utils.jwt_auth import create_access_token
 from database.databaseConfig import beehive
-from datetime import timezone
+
 
 auth_bp = Blueprint("auth", __name__)
 
