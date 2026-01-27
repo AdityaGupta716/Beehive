@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
 import { apiUrl } from '../utils/api';
+import { getToken } from '../utils/auth';
 import {
   PencilIcon,
   TrashIcon,
@@ -108,8 +108,6 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 };
 
 const Gallery = () => {
-  const { user } = useUser();
-  const clerk = useClerk();
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -137,19 +135,19 @@ const Gallery = () => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
-  // Function for authenticated API calls
+  // Function for authenticated API calls using JWT from localStorage
   const authenticatedFetch = useCallback(async (path: string, options: RequestInit = {}) => {
-    const token = await clerk.session?.getToken();
+    const token = getToken() || '';
     const headers = {
       ...options.headers,
-      'Authorization': `Bearer ${token}`,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     };
     return fetch(apiUrl(path), { 
       ...options, 
       headers, 
       credentials: 'include' 
     });
-  }, [clerk]);
+  }, []);
 
   // Revoke current audio object URL and clear state
   const revokeCurrentAudioUrl = useCallback(() => {
@@ -163,8 +161,6 @@ const Gallery = () => {
 
   // Fetch uploads with pagination support
   const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
-    if (!user?.id) return;
-    
     try {
       if (page === 1) {
         setLoading(true);
@@ -232,16 +228,13 @@ const Gallery = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [user?.id, authenticatedFetch, pageSize]);
+  }, [authenticatedFetch, pageSize]);
 
   // Initial fetch
   useEffect(() => {
-    if (user?.id) {
-      setCurrentPage(1);
-      fetchUploads(1, false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+    setCurrentPage(1);
+    fetchUploads(1, false);
+  }, [fetchUploads]);
 
   // Infinite scroll 
   useEffect(() => {

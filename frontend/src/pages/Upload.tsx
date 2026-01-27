@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { getToken, logout } from '../utils/auth';
+import { useAuth } from '../hooks/useAuth';
 import {
   CloudArrowUpIcon,
   MicrophoneIcon,
@@ -29,8 +30,8 @@ const allowedFileTypes = [
 type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
-  const { user, isLoaded } = useUser();
-  const clerk = useClerk();
+const tokenFromStorage = getToken();
+const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -53,12 +54,10 @@ const Upload = () => {
   const audioUrl = useObjectUrl(selectedVoiceNote);
   const hasHydratedDraft = useRef(false);
   const getDraftKey = useCallback(() => {
-    if (!isLoaded) return null;
     return `uploadDraft:${user?.id ?? 'anon'}`;
-  }, [user?.id, isLoaded]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (!isLoaded) return; // wait until Clerk user is ready
     const key = getDraftKey();
     if (!key) return;
     try {
@@ -79,10 +78,10 @@ const Upload = () => {
     } finally {
       hasHydratedDraft.current = true;
     }
-  }, [getDraftKey, isLoaded]);
+  }, [getDraftKey]);
 
   useEffect(() => {
-    if (!isLoaded || !hasHydratedDraft.current) return;
+    if (!hasHydratedDraft.current) return;
     const key = getDraftKey();
     if (!key) return;
     const isEmpty =
@@ -103,7 +102,7 @@ const Upload = () => {
       customSentiment,
     };
     localStorage.setItem(key, JSON.stringify(draft));
-  }, [title, description, sentiment, customSentiment, getDraftKey, isLoaded]);
+  }, [title, description, sentiment, customSentiment, getDraftKey]);
 
   useEffect(() => {
     if (!isRecording) return;
@@ -151,7 +150,7 @@ const Upload = () => {
     const analysisToast = toast.loading('AI is analyzing your media...');
 
     try {
-      const token = await clerk.session?.getToken();
+      const token = tokenFromStorage;
       if (!token) {
         throw new Error('User not authenticated');
       }
@@ -199,7 +198,7 @@ const Upload = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [aiBlock, clerk]);
+  },[aiBlock]);
 
   const MAX_SIZE: Record<string, number> = {
     "image/jpeg": 10 * 1024 * 1024,
@@ -358,11 +357,35 @@ const Upload = () => {
     }
 
     try {
-      setIsUploading(true);
+        setIsUploading(true);
+
+        // Client-side token expiry check to avoid ambiguous server 401s
+        const rawToken = tokenFromStorage;
+        if (!rawToken) {
+          toast.error('User not authenticated. Please sign in.');
+          return;
+        }
+        try {
+          const payload = JSON.parse(atob(rawToken.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 <= Date.now()) {
+            toast.error('Session expired. Redirecting to landing...');
+            logout();
+            navigate('/landing');
+            return;
+          }
+        } catch (e) {
+          // If token malformed, proceed and let server return proper error
+          console.warn('Could not parse token payload', e);
+        }
 
       // Create FormData
       const formData = new FormData();
-      formData.append('username', user.firstName + ' ' + user.lastName);
+      const usernameForUpload =
+        (user?.firstName || user?.lastName)
+          ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+          : user?.name || user?.id || '';
+
+      formData.append('username', usernameForUpload);
       formData.append('files', selectedImage);
       formData.append('title', title);
       formData.append('description', description);
@@ -373,7 +396,7 @@ const Upload = () => {
         formData.append('audio', selectedVoiceNote);
       }
       // Make the upload request
-      const token = await clerk.session?.getToken();
+      const token = tokenFromStorage;
       const response = await fetch(apiUrl('/api/user/upload'), {
         method: 'POST',
         headers: {

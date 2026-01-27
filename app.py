@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import base64
 import binascii
 import datetime
@@ -39,6 +41,7 @@ from google_auth_oauthlib.flow import Flow
 from PIL import Image
 from pip._vendor import cachecontrol
 from werkzeug.utils import secure_filename
+from flask_mail import Mail, Message
 
 from database import userdatahandler
 from database.admindatahandler import is_admin
@@ -57,10 +60,32 @@ from database.userdatahandler import (
     save_notification,
     update_image,
 )
-from decorators import login_is_required, require_admin_role
-from utils.clerk_auth import require_auth
-from config import Config
 
+from utils.jwt_auth import require_auth,require_admin_role 
+app = Flask(__name__, static_folder="static", static_url_path="/static")
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+        }
+    },
+)
+from config import Config
+app.config.from_object(Config)
+
+app.config.update(
+    MAIL_SERVER=os.getenv("MAIL_SERVER"),
+    MAIL_PORT=int(os.getenv("MAIL_PORT") or 587),
+    MAIL_USE_TLS=os.getenv("MAIL_USE_TLS", "true").lower() == "true",
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+)
+
+mail = Mail(app)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from oauth.config import ALLOWED_EMAILS, GOOGLE_CLIENT_ID
@@ -103,22 +128,7 @@ except Exception as e:
 # Fallback detector initialized lazily if the global MAGIC is unavailable
 _FALLBACK_MAGIC = None
 
-app = Flask(__name__, static_folder="static", static_url_path="/static")
-CORS(
-    app,
-    resources={
-        r"/*": {
-            "origins": Config.CORS_ORIGINS,
-            "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "expose_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True,
-            "max_age": 3600,
-        }
-    },
-)  # Enable CORS for all routes with specific configuration
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
-# SECURITY FIX: Use environment variable for secret key
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if (
     not app.secret_key
@@ -439,6 +449,9 @@ def analyze_media():
     user_id = request.current_user["id"]
     image_file = request.files.get("image")
     audio_file = request.files.get("audio")
+
+    if not genai_configured:
+        return jsonify({"error": "AI analysis not configured on server. Set a valid GOOGLE_API_KEY."}), 503
 
     prompt_parts = []
 
@@ -810,6 +823,8 @@ def get_chat_messages():
 from routes.adminroutes import admin_bp
 
 app.register_blueprint(admin_bp)
+from routes.auth import auth_bp
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 if __name__ == "__main__":
     app.run(debug=True)
