@@ -155,8 +155,18 @@ const SignUpPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
               />
-              <button onClick={requestOtp}
-              className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition">Send OTP</button>
+              <button
+                onClick={requestOtp}
+                disabled={loading}
+                className={`w-full py-2 rounded-md transition font-medium
+    ${
+      loading
+        ? "bg-yellow-300 cursor-not-allowed text-gray-600"
+        : "bg-yellow-400 hover:bg-yellow-600 text-black"
+    }`}
+              >
+                {loading ? "Sending OTP..." : "Send OTP"}
+              </button>
             </>
           )}
 
@@ -169,8 +179,12 @@ const SignUpPage = () => {
                 onChange={(e) => setOtp(e.target.value)}
                 className="input"
               />
-              <button onClick={verifyOtp}
-              className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition">Verify OTP</button>
+              <button
+                onClick={verifyOtp}
+                className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition"
+              >
+                Verify OTP
+              </button>
             </>
           )}
 
@@ -192,8 +206,12 @@ const SignUpPage = () => {
                 className="input"
               />
 
-              <button onClick={completeSignup}
-              className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition">Create Account</button>
+              <button
+                onClick={completeSignup}
+                className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition"
+              >
+                Create Account
+              </button>
             </>
           )}
 
