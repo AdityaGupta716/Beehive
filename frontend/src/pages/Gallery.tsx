@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
-import { apiUrl } from '../utils/api';
+import { apiUrl, apiGet, apiPatch, apiDelete, type GetTokenFn } from '../utils/api';
 import {
   PencilIcon,
   TrashIcon,
@@ -137,18 +137,9 @@ const Gallery = () => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
-  // Function for authenticated API calls
-  const authenticatedFetch = useCallback(async (path: string, options: RequestInit = {}) => {
-    const token = await clerk.session?.getToken();
-    const headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`,
-    };
-    return fetch(apiUrl(path), { 
-      ...options, 
-      headers, 
-      credentials: 'include' 
-    });
+  // Token getter function for authenticated API calls
+  const getToken: GetTokenFn = useCallback(async () => {
+    return await clerk.session?.getToken() || null;
   }, [clerk]);
 
   // Revoke current audio object URL and clear state
@@ -172,40 +163,13 @@ const Gallery = () => {
         setLoadingMore(true);
       }
       
-      const handleError = (message: string) => {
-        console.error('Error fetching uploads:', message);
-        if (page === 1) {
-          toast.error('Failed to fetch uploads');
-          setImages([]);
-        }
-      };
-
-      const response = await authenticatedFetch(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors'
-      });
-      
-      if (!response.ok) {
-        let errorMessage = 'Unknown error';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          errorMessage = `HTTP error! status: ${response.status}`;
-        }
-        handleError(errorMessage);
-        return;
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        handleError(data.error);
-        return;
-      }
+      // Use centralized API helper with automatic error handling
+      const data = await apiGet<{
+        images: Upload[];
+        totalPages: number;
+        total_count: number;
+        page: number;
+      }>(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, getToken);
       
       const sortedImages: Upload[] = (data.images || []).sort((a: Upload, b: Upload) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -232,7 +196,7 @@ const Gallery = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [user?.id, authenticatedFetch, pageSize]);
+  }, [user?.id, getToken, pageSize]);
 
   // Initial fetch
   useEffect(() => {
@@ -286,15 +250,8 @@ const Gallery = () => {
       formData.append('description', description);
       formData.append('sentiment', sentiment);
 
-      const response = await authenticatedFetch(`/edit/${id}`, {
-        method: 'PATCH',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update image');
-      }
+      // Use centralized PATCH helper with FormData support
+      await apiPatch(`/edit/${id}`, formData, getToken);
 
       setImages(images.map(img => 
         img.id === id ? { ...img, title, description, sentiment } : img
@@ -313,14 +270,8 @@ const Gallery = () => {
     }
 
     try {
-      const response = await authenticatedFetch(`/delete/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete image');
-      }
+      // Use centralized DELETE helper
+      await apiDelete(`/delete/${id}`, getToken);
 
       setImages(images.filter(img => img.id !== id));
       toast.success('Image deleted successfully!');
@@ -365,8 +316,13 @@ const Gallery = () => {
     }
 
     try {
-      const response = await authenticatedFetch(`/audio/${audioFilename}`, {
+      // For binary responses like audio, we need to use the lower-level fetch
+      // since we need blob() instead of json()
+      const token = await getToken();
+      const response = await fetch(apiUrl(`/audio/${audioFilename}`), {
         method: 'GET',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        credentials: 'include',
       });
 
       if (!response.ok) {
