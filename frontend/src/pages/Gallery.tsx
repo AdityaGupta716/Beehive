@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+<<<<<<< HEAD
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { apiUrl, apiGet, apiPatch, apiDelete, type GetTokenFn } from '../utils/api';
+=======
+import { apiUrl } from '../utils/api';
+import { getToken } from '../utils/auth';
+>>>>>>> 7a83d8f730c9559a767d299fe91124ff5131de13
 import {
   PencilIcon,
   TrashIcon,
@@ -108,8 +113,6 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 };
 
 const Gallery = () => {
-  const { user } = useUser();
-  const clerk = useClerk();
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -150,8 +153,6 @@ const Gallery = () => {
   }, []);
 
   const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
-    if (!user?.id) return;
-    
     try {
       if (page === 1) {
         setLoading(true);
@@ -194,11 +195,12 @@ const Gallery = () => {
   }, [user?.id, getToken, pageSize]);
 
   useEffect(() => {
+<<<<<<< HEAD
     if (user?.id) {
       setCurrentPage(1);
       fetchUploads(1, false);
     }
-  }, [user?.id]);
+  }, [user?.id, fetchUploads]);
 
   useEffect(() => {
     if (viewMode === 'rolling') return;

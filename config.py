@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # Clerk Configuration
-    CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY')
-    CLERK_ISSUER = os.getenv('CLERK_ISSUER')
+    JWT_SECRET = os.getenv("JWT_SECRET")
+    JWT_ALGORITHM = "HS256"
+    JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", 24))
+
     
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'beehive-secret-key')
@@ -27,9 +28,6 @@ class Config:
     @staticmethod
     def validate_config():
         """Validate that all required configuration is present"""
-        if not Config.CLERK_SECRET_KEY:
-            raise ValueError("Missing required environment variable: CLERK_SECRET_KEY")
-        # CLERK_ISSUER is required for JWT verification if using Clerk frontend tokens
-        if not Config.CLERK_ISSUER:
-            raise ValueError("Missing required environment variable: CLERK_ISSUER")
+        if not Config.JWT_SECRET or Config.JWT_SECRET == "dev-secret-change-this":
+            raise ValueError("Missing or insecure JWT_SECRET environment variable. Set JWT_SECRET in your .env for production.")
         return True

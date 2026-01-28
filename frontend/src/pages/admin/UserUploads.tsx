@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useClerk } from '@clerk/clerk-react';
+import { getToken } from '../../utils/auth';
 import { motion } from 'framer-motion';
 import { ArrowLeftIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
@@ -19,9 +19,9 @@ interface Upload {
 const UserUploads = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const clerk = useClerk();
+  const token = getToken();
   const [uploads, setUploads] = useState<Upload[]>([]);
-  const [userName, setUserName] = useState('User');
+  const userName = 'User';
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<string | null>(null);
@@ -47,8 +47,8 @@ const UserUploads = () => {
         setLoadingMore(true);
       }
       
-      // Get the authentication token from Clerk
-      const token = await clerk.session?.getToken();
+      // Get the authentication token from local storage
+      // token is already available from helper above
       
       const response = await fetch(apiUrl(`/api/admin/user_uploads/${userId}?page=${page}&page_size=${pageSize}`), {
         method: 'GET',
@@ -94,7 +94,7 @@ const UserUploads = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [userId, clerk, pageSize]);
+  }, [userId, pageSize]);
 
   // Initial fetch
   useEffect(() => {
