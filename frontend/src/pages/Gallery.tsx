@@ -137,7 +137,6 @@ const Gallery = () => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
-  // Token getter function for authenticated API calls
   const getToken: GetTokenFn = useCallback(async () => {
     return await clerk.session?.getToken() || null;
   }, [clerk]);
@@ -152,7 +151,6 @@ const Gallery = () => {
     });
   }, []);
 
-  // Fetch uploads with pagination support
   const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
     if (!user?.id) return;
     
@@ -163,7 +161,6 @@ const Gallery = () => {
         setLoadingMore(true);
       }
       
-      // Use centralized API helper with automatic error handling
       const data = await apiGet<{
         images: Upload[];
         totalPages: number;
@@ -250,7 +247,6 @@ const Gallery = () => {
       formData.append('description', description);
       formData.append('sentiment', sentiment);
 
-      // Use centralized PATCH helper with FormData support
       await apiPatch(`/edit/${id}`, formData, getToken);
 
       setImages(images.map(img => 
@@ -270,7 +266,6 @@ const Gallery = () => {
     }
 
     try {
-      // Use centralized DELETE helper
       await apiDelete(`/delete/${id}`, getToken);
 
       setImages(images.filter(img => img.id !== id));
@@ -298,7 +293,6 @@ const Gallery = () => {
   };
 
   const handleAudioClick = async (audioFilename: string) => {
-    // Stop and clear if toggling the same audio
     if (currentAudio === audioFilename) {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -309,15 +303,12 @@ const Gallery = () => {
       return;
     }
 
-    // Stop any current playback before loading the next file
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
 
     try {
-      // For binary responses like audio, we need to use the lower-level fetch
-      // since we need blob() instead of json()
       const token = await getToken();
       const response = await fetch(apiUrl(`/audio/${audioFilename}`), {
         method: 'GET',
@@ -387,7 +378,6 @@ const Gallery = () => {
 
   const getThumbnailUrl = (filename: string) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
-      // For PDFs, use the thumbnail
       return apiUrl(`/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`);
     }
     // For images, use the original file

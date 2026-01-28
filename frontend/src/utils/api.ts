@@ -1,64 +1,12 @@
-/**
- * Centralized API Utility for Beehive Frontend
- * 
- * This module provides a clean, reusable wrapper around fetch for all API calls.
- * It handles authentication, error handling, and JSON parsing automatically.
- * 
- * @example Basic Usage
- * ```typescript
- * import { apiGet, apiPost, type GetTokenFn } from '@/utils/api';
- * import { useClerk } from '@clerk/clerk-react';
- * 
- * // Create token getter function
- * const { clerk } = useClerk();
- * const getToken: GetTokenFn = async () => {
- *   return await clerk.session?.getToken() || null;
- * };
- * 
- * // GET request
- * const users = await apiGet('/api/users', getToken);
- * 
- * // POST with JSON body
- * const newUser = await apiPost('/api/users', { name: 'John' }, getToken);
- * 
- * // POST with FormData
- * const formData = new FormData();
- * formData.append('image', file);
- * await apiPost('/api/upload', formData, getToken);
- * 
- * // PATCH and DELETE
- * await apiPatch('/api/users/1', { name: 'Jane' }, getToken);
- * await apiDelete('/api/users/1', getToken);
- * ```
- * 
- * @example Error Handling
- * ```typescript
- * try {
- *   const data = await apiGet('/api/users', getToken);
- * } catch (error) {
- *   if (error instanceof ApiError) {
- *     console.error(`API Error ${error.status}:`, error.message);
- *   }
- * }
- * ```
- */
 
-// Centralized API configuration
+// Centralized API utility for Beehive frontend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
-/**
- * Constructs the full API URL from a path
- * Kept for backward compatibility
- */
 export const apiUrl = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
 };
 
-/**
- * Custom error class for API errors
- * Allows better error handling and messaging
- */
 export class ApiError extends Error {
   status: number;
   data?: any;
@@ -71,16 +19,8 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Helper to get authentication token from Clerk
- * Returns null if not available
- */
 export type GetTokenFn = () => Promise<string | null>;
 
-/**
- * Core fetch wrapper with centralized error handling
- * Handles JSON parsing, error responses, and common headers
- */
 async function apiFetch<T = any>(
   path: string,
   options: RequestInit = {},
@@ -138,10 +78,6 @@ async function apiFetch<T = any>(
   return data;
 }
 
-/**
- * GET request helper
- * Usage: await apiGet('/api/users', getTokenFn)
- */
 export async function apiGet<T = any>(
   path: string,
   getToken?: GetTokenFn
@@ -149,11 +85,6 @@ export async function apiGet<T = any>(
   return apiFetch<T>(path, { method: 'GET' }, getToken);
 }
 
-/**
- * POST request helper
- * Automatically handles JSON serialization for objects
- * Usage: await apiPost('/api/users', { name: 'John' }, getTokenFn)
- */
 export async function apiPost<T = any>(
   path: string,
   body?: any,
@@ -172,11 +103,6 @@ export async function apiPost<T = any>(
   );
 }
 
-/**
- * PATCH request helper
- * Automatically handles JSON serialization for objects
- * Usage: await apiPatch('/api/users/1', { name: 'Jane' }, getTokenFn)
- */
 export async function apiPatch<T = any>(
   path: string,
   body?: any,
@@ -195,10 +121,6 @@ export async function apiPatch<T = any>(
   );
 }
 
-/**
- * DELETE request helper
- * Usage: await apiDelete('/api/users/1', getTokenFn)
- */
 export async function apiDelete<T = any>(
   path: string,
   getToken?: GetTokenFn
@@ -206,11 +128,6 @@ export async function apiDelete<T = any>(
   return apiFetch<T>(path, { method: 'DELETE' }, getToken);
 }
 
-/**
- * PUT request helper
- * Automatically handles JSON serialization for objects
- * Usage: await apiPut('/api/users/1', { name: 'Jane' }, getTokenFn)
- */
 export async function apiPut<T = any>(
   path: string,
   body?: any,
