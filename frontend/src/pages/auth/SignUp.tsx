@@ -65,8 +65,8 @@ const SignUpPage = () => {
     }
 
     // Password length check
-    if (password.length < 4) {
-      setError("Password must be at least 4 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
     setLoading(true);
