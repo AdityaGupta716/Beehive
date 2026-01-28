@@ -1,12 +1,9 @@
-
-// Centralized API utility for Beehive frontend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 export const apiUrl = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
 };
-
 export class ApiError extends Error {
   status: number;
   data?: any;
@@ -28,12 +25,10 @@ async function apiFetch<T = any>(
 ): Promise<T> {
   const url = apiUrl(path);
   
-  // Build headers with auth token if available
   const headers: HeadersInit = {
     ...options.headers,
   };
 
-  // Add authorization header if token getter is provided
   if (getToken) {
     const token = await getToken();
     if (token) {
@@ -41,18 +36,15 @@ async function apiFetch<T = any>(
     }
   }
 
-  // Make the request
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include', // Include cookies for session management
+    credentials: 'include',
   });
 
-  // Handle non-JSON responses (e.g., file downloads)
   const contentType = response.headers.get('content-type');
   const isJson = contentType?.includes('application/json');
 
-  // Parse response body
   let data: any;
   if (isJson) {
     data = await response.json();
@@ -60,7 +52,6 @@ async function apiFetch<T = any>(
     data = await response.text();
   }
 
-  // Handle error responses
   if (!response.ok) {
     const errorMessage = 
       (isJson && data.error) || 
@@ -70,7 +61,6 @@ async function apiFetch<T = any>(
     throw new ApiError(errorMessage, response.status, data);
   }
 
-  // Check for application-level errors in successful responses
   if (isJson && data.error) {
     throw new ApiError(data.error, response.status, data);
   }

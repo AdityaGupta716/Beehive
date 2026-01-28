@@ -124,7 +124,6 @@ const Gallery = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentRollingIndex, setCurrentRollingIndex] = useState(0);
   
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -141,7 +140,6 @@ const Gallery = () => {
     return await clerk.session?.getToken() || null;
   }, [clerk]);
 
-  // Revoke current audio object URL and clear state
   const revokeCurrentAudioUrl = useCallback(() => {
     setCurrentAudioUrl((url) => {
       if (url) {
@@ -195,16 +193,13 @@ const Gallery = () => {
     }
   }, [user?.id, getToken, pageSize]);
 
-  // Initial fetch
   useEffect(() => {
     if (user?.id) {
       setCurrentPage(1);
       fetchUploads(1, false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Infinite scroll 
   useEffect(() => {
     if (viewMode === 'rolling') return;
 
@@ -380,7 +375,6 @@ const Gallery = () => {
     if (filename.toLowerCase().endsWith('.pdf')) {
       return apiUrl(`/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`);
     }
-    // For images, use the original file
     return apiUrl(`/static/uploads/${filename}`);
   };
 
@@ -473,7 +467,6 @@ const Gallery = () => {
   const renderRollingView = () => {
     return (
       <div className="relative w-full mx-auto overflow-hidden">
-        {/* Enhanced Navigation Controls */}
         <div className="absolute top-1/2 -translate-y-1/2 lg:left-1 lg:right-1 left-0 right-0 z-10 flex justify-between pointer-events-none">
           <motion.button
             onClick={() => handleRollingNavigation('prev')}
@@ -527,7 +520,6 @@ const Gallery = () => {
                       className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
                     />
                   
-                  {/* Enhanced Overlay */}
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -969,21 +961,18 @@ const Gallery = () => {
 
 
 
-            {/* Infinite scroll observer target */}
             <div 
               ref={observerTarget} 
               className="w-full h-4 mt-8"
               aria-label="Infinite scroll trigger"
             />
 
-            {/* Loading indicator */}
             {loadingMore && (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
               </div>
             )}
 
-            {/* End of page indicator */}
             {currentPage >= totalPages && images.length > 0 && (
               <div className="flex justify-center py-8">
                 <p className="text-gray-500 dark:text-gray-400 text-center">
