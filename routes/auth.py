@@ -121,6 +121,9 @@ def complete_signup():
     # Validate password length
     if len(password) < 8:
         return jsonify({"error": "Password must be at least 8 characters"}), 400
+    # Prevent duplicate email
+    if db.users.find_one({"email": email}):
+        return jsonify({"error": "Email already registered"}), 400
     # Prevent duplicate username
     if db.users.find_one({"username": username}):
         return jsonify({"error": "Username already taken"}), 400
