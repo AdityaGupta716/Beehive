@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { getToken, logout } from '../utils/auth';
-import { useAuth } from '../hooks/useAuth';
+import { useState, useRef, useEffect, useCallback } from "react";
+import { getToken, logout } from "../utils/auth";
+import { useAuth } from "../hooks/useAuth";
 import {
   CloudArrowUpIcon,
   MicrophoneIcon,
@@ -12,31 +12,32 @@ import {
   XMarkIcon,
   DocumentIcon,
   SparklesIcon,
-} from '@heroicons/react/24/outline';
-import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
-import { apiUrl } from '../utils/api';
-import useObjectUrl from '../hooks/useObjectUrl';
+  CameraIcon,
+} from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../utils/api";
+import useObjectUrl from "../hooks/useObjectUrl";
 
 const allowedFileTypes = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/heif',
-  'application/pdf',
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heif",
+  "application/pdf",
 ];
 
-type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
+type SentimentType = "positive" | "neutral" | "negative" | "custom";
 
 const Upload = () => {
-const tokenFromStorage = getToken();
-const { user } = useAuth();
+  const tokenFromStorage = getToken();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [sentiment, setSentiment] = useState<SentimentType>('neutral');
-  const [customSentiment, setCustomSentiment] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [sentiment, setSentiment] = useState<SentimentType>("neutral");
+  const [customSentiment, setCustomSentiment] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedVoiceNote, setSelectedVoiceNote] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -54,7 +55,7 @@ const { user } = useAuth();
   const audioUrl = useObjectUrl(selectedVoiceNote);
   const hasHydratedDraft = useRef(false);
   const getDraftKey = useCallback(() => {
-    return `uploadDraft:${user?.id ?? 'anon'}`;
+    return `uploadDraft:${user?.id ?? "anon"}`;
   }, [user?.id]);
 
   useEffect(() => {
@@ -72,9 +73,10 @@ const { user } = useAuth();
       if (draft.title !== undefined) setTitle(draft.title);
       if (draft.description !== undefined) setDescription(draft.description);
       if (draft.sentiment !== undefined) setSentiment(draft.sentiment);
-      if (draft.customSentiment !== undefined) setCustomSentiment(draft.customSentiment);
+      if (draft.customSentiment !== undefined)
+        setCustomSentiment(draft.customSentiment);
     } catch (err) {
-      console.warn('Failed to load upload draft', err);
+      console.warn("Failed to load upload draft", err);
     } finally {
       hasHydratedDraft.current = true;
     }
@@ -87,7 +89,7 @@ const { user } = useAuth();
     const isEmpty =
       !title.trim() &&
       !description.trim() &&
-      sentiment === 'neutral' &&
+      sentiment === "neutral" &&
       !customSentiment.trim();
 
     if (isEmpty) {
@@ -133,72 +135,85 @@ const { user } = useAuth();
     setIsPlaying(false);
   }, []);
 
-  const aiBlock = useCallback((error: unknown): boolean => {
-    const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+  const aiBlock = useCallback(
+    (error: unknown): boolean => {
+      const errorMessage =
+        error instanceof Error ? error.message : "Analysis failed";
 
-    const isBlocked = errorMessage.includes('blocked') || errorMessage.includes('restricted');
-    if (isBlocked) {
-      toast.error("This media couldn't be analyzed due to content restrictions and was not uploaded.");
-      handleRemoveAllMedia();
-    }
-    return isBlocked;
-  }, [handleRemoveAllMedia]);
-  const handleAnalyzeMedia = useCallback(async (imageFile: File | null, audioFile: File | null) => {
-    if (!imageFile && !audioFile) return;
-
-    setIsAnalyzing(true);
-    const analysisToast = toast.loading('AI is analyzing your media...');
-
-    try {
-      const token = tokenFromStorage;
-      if (!token) {
-        throw new Error('User not authenticated');
+      const isBlocked =
+        errorMessage.includes("blocked") || errorMessage.includes("restricted");
+      if (isBlocked) {
+        toast.error(
+          "This media couldn't be analyzed due to content restrictions and was not uploaded.",
+        );
+        handleRemoveAllMedia();
       }
+      return isBlocked;
+    },
+    [handleRemoveAllMedia],
+  );
+  const handleAnalyzeMedia = useCallback(
+    async (imageFile: File | null, audioFile: File | null) => {
+      if (!imageFile && !audioFile) return;
 
-      const formData = new FormData();
-      if (imageFile) {
-        formData.append('image', imageFile);
+      setIsAnalyzing(true);
+      const analysisToast = toast.loading("AI is analyzing your media...");
+
+      try {
+        const token = tokenFromStorage;
+        if (!token) {
+          throw new Error("User not authenticated");
+        }
+
+        const formData = new FormData();
+        if (imageFile) {
+          formData.append("image", imageFile);
+        }
+        if (audioFile) {
+          formData.append("audio", audioFile);
+        }
+
+        const response = await fetch(apiUrl("/api/analyze-media"), {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "AI analysis failed");
+        }
+
+        setTitle(data.title || "");
+        setDescription(data.description || "");
+
+        const suggestedSentiment = data.sentiment as SentimentType;
+        if (["positive", "neutral", "negative"].includes(suggestedSentiment)) {
+          setSentiment(suggestedSentiment);
+        } else if (data.sentiment) {
+          setSentiment("custom");
+          setCustomSentiment(data.sentiment);
+        }
+
+        toast.success("Fields autofilled by AI ✨", { id: analysisToast });
+      } catch (error) {
+        console.error("Analysis error:", error);
+        if (!aiBlock(error)) {
+          toast.error(
+            error instanceof Error ? error.message : "Analysis failed.",
+            { id: analysisToast },
+          );
+        }
+      } finally {
+        setIsAnalyzing(false);
       }
-      if (audioFile) {
-        formData.append('audio', audioFile);
-      }
-
-      const response = await fetch(apiUrl('/api/analyze-media'), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'AI analysis failed');
-      }
-
-      setTitle(data.title || '');
-      setDescription(data.description || '');
-
-      const suggestedSentiment = data.sentiment as SentimentType;
-      if (['positive', 'neutral', 'negative'].includes(suggestedSentiment)) {
-        setSentiment(suggestedSentiment);
-      } else if (data.sentiment) {
-        setSentiment('custom');
-        setCustomSentiment(data.sentiment);
-      }
-
-      toast.success('Fields autofilled by AI ✨', { id: analysisToast });
-    } catch (error) {
-      console.error('Analysis error:', error);
-      if (!aiBlock(error)) {
-        toast.error(error instanceof Error ? error.message : 'Analysis failed.', { id: analysisToast });
-      }
-    } finally {
-      setIsAnalyzing(false);
-    }
-  },[aiBlock]);
+    },
+    [aiBlock],
+  );
 
   const MAX_SIZE: Record<string, number> = {
     "image/jpeg": 10 * 1024 * 1024,
@@ -209,16 +224,17 @@ const { user } = useAuth();
     "application/pdf": 25 * 1024 * 1024,
   };
 
-
   const handleImageProcessing = useCallback((file: File) => {
     if (!allowedFileTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload an image or PDF.');
+      toast.error("Invalid file type. Please upload an image or PDF.");
       return;
     }
 
     const maxSize = MAX_SIZE[file.type];
     if (maxSize && file.size > maxSize) {
-      toast.error(`File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`);
+      toast.error(
+        `File is too large. Max size allowed is ${(maxSize / (1024 * 1024)).toFixed(0)}MB.`,
+      );
       return;
     }
 
@@ -227,15 +243,15 @@ const { user } = useAuth();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setIsPreviewing(false);
       }
     };
     if (isPreviewing) {
-      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener("keydown", handleKeyDown);
     }
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isPreviewing]);
 
@@ -245,23 +261,29 @@ const { user } = useAuth();
     setIsDragActive(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-  }, []);
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent<HTMLLabelElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+    },
+    [],
+  );
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file) {
-        handleImageProcessing(file);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLLabelElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          handleImageProcessing(file);
+        }
       }
-    }
-  }, [handleImageProcessing]);
+    },
+    [handleImageProcessing],
+  );
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -270,12 +292,12 @@ const { user } = useAuth();
     }
   };
 
-
-
   const startRecording = async () => {
     try {
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-      const fileExtension = mimeType === 'audio/ogg' ? 'ogg' : 'webm';
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/ogg";
+      const fileExtension = mimeType === "audio/ogg" ? "ogg" : "webm";
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -290,11 +312,9 @@ const { user } = useAuth();
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const audioFile = new File(
-          [audioBlob],
-          `voice-note.${fileExtension}`,
-          { type: mimeType }
-        );
+        const audioFile = new File([audioBlob], `voice-note.${fileExtension}`, {
+          type: mimeType,
+        });
         setSelectedVoiceNote(audioFile);
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -302,10 +322,9 @@ const { user } = useAuth();
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-
     } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast.error('Error accessing microphone');
+      console.error("Error accessing microphone:", error);
+      toast.error("Error accessing microphone");
     }
   };
 
@@ -326,8 +345,8 @@ const { user } = useAuth();
         setIsPlaying(false);
       } else {
         audioRef.current.play().catch((error) => {
-          console.error('Error playing audio:', error);
-          toast.error('Error playing audio');
+          console.error("Error playing audio:", error);
+          toast.error("Error playing audio");
         });
         setIsPlaying(true);
       }
@@ -347,85 +366,92 @@ const { user } = useAuth();
     e.preventDefault();
 
     if (!selectedImage) {
-      toast.error('Please select an image');
+      toast.error("Please select an image");
       return;
     }
 
     if (!user?.id) {
-      toast.error('User not authenticated');
+      toast.error("User not authenticated");
       return;
     }
 
     try {
-        setIsUploading(true);
+      setIsUploading(true);
 
-        // Client-side token expiry check to avoid ambiguous server 401s
-        const rawToken = tokenFromStorage;
-        if (!rawToken) {
-          toast.error('User not authenticated. Please sign in.');
+      // Client-side token expiry check to avoid ambiguous server 401s
+      const rawToken = tokenFromStorage;
+      if (!rawToken) {
+        toast.error("User not authenticated. Please sign in.");
+        return;
+      }
+      try {
+        const payload = JSON.parse(atob(rawToken.split(".")[1]));
+        if (payload.exp && payload.exp * 1000 <= Date.now()) {
+          toast.error("Session expired. Redirecting to landing...");
+          logout();
+          navigate("/landing");
           return;
         }
-        try {
-          const payload = JSON.parse(atob(rawToken.split('.')[1]));
-          if (payload.exp && payload.exp * 1000 <= Date.now()) {
-            toast.error('Session expired. Redirecting to landing...');
-            logout();
-            navigate('/landing');
-            return;
-          }
-        } catch (e) {
-          // If token malformed, proceed and let server return proper error
-          console.warn('Could not parse token payload', e);
-        }
+      } catch (e) {
+        // If token malformed, proceed and let server return proper error
+        console.warn("Could not parse token payload", e);
+      }
 
       // Create FormData
       const formData = new FormData();
       const usernameForUpload =
-        (user?.firstName || user?.lastName)
-          ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
-          : user?.name || user?.id || '';
+        user?.firstName || user?.lastName
+          ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
+          : user?.name || user?.id || "";
 
-      formData.append('username', usernameForUpload);
-      formData.append('files', selectedImage);
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('sentiment', sentiment === 'custom' ? customSentiment : sentiment);
+      formData.append("username", usernameForUpload);
+      formData.append("files", selectedImage);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append(
+        "sentiment",
+        sentiment === "custom" ? customSentiment : sentiment,
+      );
 
       // Add audio data if available
       if (selectedVoiceNote) {
-        formData.append('audio', selectedVoiceNote);
+        formData.append("audio", selectedVoiceNote);
       }
       // Make the upload request
       const token = tokenFromStorage;
-      const response = await fetch(apiUrl('/api/user/upload'), {
-        method: 'POST',
+      const response = await fetch(apiUrl("/api/user/upload"), {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: formData,
-        credentials: 'include',
+        credentials: "include",
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || "Upload failed");
       }
 
       const key = getDraftKey();
       if (key) localStorage.removeItem(key);
-      toast.success('Upload successful!');
-      navigate('/gallery');
+      toast.success("Upload successful!");
+      navigate("/gallery");
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : 'Upload failed. Please try again.');
+      console.error("Upload error:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Upload failed. Please try again.",
+      );
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-3xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">Upload Media</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -438,7 +464,9 @@ const { user } = useAuth();
                 <div className="flex items-center justify-between w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg">
                   <div className="flex items-center gap-3">
                     <DocumentIcon className="h-6 w-6 text-gray-500" />
-                    <span className="text-sm font-medium truncate">{selectedImage.name}</span>
+                    <span className="text-sm font-medium truncate">
+                      {selectedImage.name}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -462,8 +490,8 @@ const { user } = useAuth();
                 </div>
               ) : (
                 <label
-                  className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200
-                    ${isDragActive ? 'border-yellow-500 bg-gray-50 dark:bg-gray-700' : 'border-gray-300 dark:border-gray-600'}
+                  className={`flex flex-col items-center justify-center w-full h-72 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200
+                    ${isDragActive ? "border-yellow-500 bg-gray-50 dark:bg-gray-700" : "border-gray-300 dark:border-gray-600"}
                   `}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -472,13 +500,17 @@ const { user } = useAuth();
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <CloudArrowUpIcon className="w-10 h-10 text-gray-400 mb-3" />
                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
+                      <span className="font-semibold">Click to upload</span> or
+                      drag and drop
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                       PNG, JPG, GIF, WEBP, HEIF or PDF
                     </p>
                     <div className="text-xs text-gray-400 dark:text-gray-500 space-y-1">
-                      <p>Max sizes: JPEG/PNG/WEBP 10MB, GIF 8MB, HEIF 15MB, PDF 25MB</p>
+                      <p>
+                        Max sizes: JPEG/PNG/WEBP 10MB, GIF 8MB, HEIF 15MB, PDF
+                        25MB
+                      </p>
                     </div>
                   </div>
                   <input
@@ -489,6 +521,17 @@ const { user } = useAuth();
                   />
                 </label>
               )}
+            </div>
+
+            {/* Click Photo */}
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors duration-200"
+              >
+                <CameraIcon className="h-5 w-5" />
+                <span>Click Photo</span>
+              </button>
             </div>
           </div>
         </div>
@@ -530,7 +573,9 @@ const { user } = useAuth();
               <div className="space-y-2">
                 <select
                   value={sentiment}
-                  onChange={(e) => setSentiment(e.target.value as SentimentType)}
+                  onChange={(e) =>
+                    setSentiment(e.target.value as SentimentType)
+                  }
                   className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 disabled:opacity-50"
                   disabled={!hasHydratedDraft.current || isAnalyzing}
                 >
@@ -540,7 +585,7 @@ const { user } = useAuth();
                   <option value="custom">Custom</option>
                 </select>
 
-                {sentiment === 'custom' && (
+                {sentiment === "custom" && (
                   <input
                     type="text"
                     value={customSentiment}
@@ -558,15 +603,17 @@ const { user } = useAuth();
         {/* Voice Note */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
           <div className="p-6">
-            <label className="block mb-2 font-medium">Voice Note (Optional)</label>
+            <label className="block mb-2 font-medium">
+              Voice Note (Optional)
+            </label>
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
                   className={`flex items-center space-x-2 ${isRecording
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-yellow-400 hover:bg-yellow-500'
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-yellow-400 hover:bg-yellow-500"
                     } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
                 >
                   {isRecording ? (
@@ -584,11 +631,11 @@ const { user } = useAuth();
 
                 {isRecording && (
                   <span className="text-sm font-mono text-red-600 dark:text-red-400">
-                    ⏺ {Math.floor(recordingTime / 60)
+                    ⏺{" "}
+                    {Math.floor(recordingTime / 60)
                       .toString()
-                      .padStart(2, '0')}
-                    :
-                    {(recordingTime % 60).toString().padStart(2, '0')}
+                      .padStart(2, "0")}
+                    :{(recordingTime % 60).toString().padStart(2, "0")}
                   </span>
                 )}
 
@@ -598,7 +645,7 @@ const { user } = useAuth();
                       type="button"
                       onClick={handlePlayback}
                       className="p-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-black transition-colors duration-200"
-                      title={isPlaying ? 'Pause' : 'Play'}
+                      title={isPlaying ? "Pause" : "Play"}
                     >
                       {isPlaying ? (
                         <StopIcon className="h-5 w-5" />
@@ -621,8 +668,8 @@ const { user } = useAuth();
                       className="hidden"
                       onEnded={() => setIsPlaying(false)}
                       onError={(e) => {
-                        console.error('Audio error:', e);
-                        toast.error('Error playing audio');
+                        console.error("Audio error:", e);
+                        toast.error("Error playing audio");
                         setIsPlaying(false);
                       }}
                     />
@@ -632,7 +679,8 @@ const { user } = useAuth();
 
               {selectedVoiceNote && (
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Voice note recorded. Click play to preview or the refresh icon to record again.
+                  Voice note recorded. Click play to preview or the refresh icon
+                  to record again.
                 </div>
               )}
             </div>
@@ -643,19 +691,30 @@ const { user } = useAuth();
           <button
             type="button"
             onClick={() => handleAnalyzeMedia(selectedImage, selectedVoiceNote)}
-            disabled={!selectedImage && !selectedVoiceNote || isUploading || isAnalyzing}
+            disabled={
+              (!selectedImage && !selectedVoiceNote) ||
+              isUploading ||
+              isAnalyzing
+            }
             className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <SparklesIcon className="h-5 w-5" />
-            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+            {isAnalyzing ? "Analyzing..." : "Analyze"}
           </button>
 
           <button
             type="submit"
-            disabled={!selectedImage || isUploading || isAnalyzing || (sentiment === 'custom' && !customSentiment.trim()) || !title.trim() || !description.trim()}
+            disabled={
+              !selectedImage ||
+              isUploading ||
+              isAnalyzing ||
+              (sentiment === "custom" && !customSentiment.trim()) ||
+              !title.trim() ||
+              !description.trim()
+            }
             className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isUploading ? 'Uploading...' : 'Upload Media'}
+            {isUploading ? "Uploading..." : "Upload Media"}
           </button>
         </div>
       </form>
@@ -677,7 +736,7 @@ const { user } = useAuth();
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
-            {selectedImage.type === 'application/pdf' ? (
+            {selectedImage.type === "application/pdf" ? (
               <iframe
                 src={imagePreview}
                 className="w-full h-full rounded-lg"
