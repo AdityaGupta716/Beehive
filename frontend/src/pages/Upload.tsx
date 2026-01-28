@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { apiUrl } from "../utils/api";
 import useObjectUrl from "../hooks/useObjectUrl";
+import Webcam from "../components/Webcam";
 
 const allowedFileTypes = [
   "image/jpeg",
@@ -523,6 +524,8 @@ const Upload = () => {
               )}
             </div>
 
+            <h2 className='text-center mt-3 text-gray-400 '>OR</h2>
+
             {/* Click Photo */}
             <div className="mt-4 flex justify-center">
               <button
@@ -612,8 +615,8 @@ const Upload = () => {
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
                   className={`flex items-center space-x-2 ${isRecording
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-yellow-400 hover:bg-yellow-500"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-yellow-400 hover:bg-yellow-500"
                     } text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200`}
                 >
                   {isRecording ? (
@@ -752,6 +755,31 @@ const Upload = () => {
           </div>
         </div>
       )}
+
+      {/* Camera Modal */}
+      {
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
+          onClick={() => setIsPreviewing(false)}
+        >
+          <div
+            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-4xl h-5/6 overflow-hidden p-4 flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsPreviewing(false)}
+              className="absolute -top-3 -right-3 z-10 p-1 bg-white rounded-full text-black shadow-lg"
+              title="Close Preview"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+            <div className="w-full h-full">
+              <Webcam />
+            </div>
+          </div>
+        </div>
+      }
+
     </div>
   );
 };
