@@ -48,6 +48,7 @@ const Upload = () => {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [isWebcamOpen, setIsWebcamOpen] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -363,6 +364,12 @@ const Upload = () => {
     setIsPlaying(false);
   };
 
+  const handleCapturedPhoto = useCallback((file: File) => {
+    setSelectedImage(file);
+    setIsWebcamOpen(false);
+    toast.success("Photo captured and ready to upload!");
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -530,6 +537,7 @@ const Upload = () => {
             <div className="mt-4 flex justify-center">
               <button
                 type="button"
+                onClick={() => setIsWebcamOpen(true)}
                 className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors duration-200"
               >
                 <CameraIcon className="h-5 w-5" />
@@ -757,28 +765,24 @@ const Upload = () => {
       )}
 
       {/* Camera Modal */}
-      {
+      {isWebcamOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
-          onClick={() => setIsPreviewing(false)}
+          onClick={() => setIsWebcamOpen(false)}
         >
           <div
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-4xl h-5/6 overflow-hidden p-4 flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => setIsPreviewing(false)}
-              className="absolute -top-3 -right-3 z-10 p-1 bg-white rounded-full text-black shadow-lg"
-              title="Close Preview"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
             <div className="w-full h-full">
-              <Webcam />
+              <Webcam
+                onCapture={handleCapturedPhoto}
+                onClose={() => setIsWebcamOpen(false)}
+              />
             </div>
           </div>
         </div>
-      }
+      )}
 
     </div>
   );
