@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 
 const Webcam = () => {
-  const camRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const startCamera = async () => {
@@ -11,8 +11,8 @@ const Webcam = () => {
           audio: false
         });
 
-        if (camRef.current) {
-          camRef.current.srcObject = stream;
+        if (streamRef.current) {
+          streamRef.current.srcObject = stream;
         }
       } catch (err) {
         console.error(err);
@@ -25,7 +25,7 @@ const Webcam = () => {
   return (
     <>
       <video
-        ref={camRef}
+        ref={streamRef}
         autoPlay
         playsInline
         className="w-full h-[70vh] object-cover rounded-lg"
