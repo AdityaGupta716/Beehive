@@ -30,7 +30,9 @@ const SignUpPage = () => {
       // if apiFetch didn't throw → success
       setStep("otp");
     } catch (err: any) {
-      setError(err?.response?.error || err?.message || "Failed to send OTP");
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
