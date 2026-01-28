@@ -367,7 +367,6 @@ const Upload = () => {
   const handleCapturedPhoto = useCallback((file: File) => {
     setSelectedImage(file);
     setIsWebcamOpen(false);
-    toast.success("Photo captured and ready to upload!");
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
