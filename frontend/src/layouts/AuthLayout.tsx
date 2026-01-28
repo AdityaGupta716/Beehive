@@ -78,7 +78,6 @@ const AuthLayout = () => {
 
       {/* Main Container */}
       <div className="relative w-full max-w-md px-4 z-30 mt-10">
-
         {/* Logo Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -87,19 +86,20 @@ const AuthLayout = () => {
           className="text-center mb-8"
         >
           {/* <Link to="/" className="inline-block group"> */}
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <motion.img
-              src="/favicon.png"
-              alt="Beehive Logo"
-              className="w-12 h-12"
-              whileHover={{ scale: 1.1, rotate: 10 }}
-              transition={{ type: "spring", stiffness: 400 }}
-            />
-            <h1 className="text-3xl font-bold bg-clip-text text-black bg-gradient-to-r from-gray-900 to-gray-600 dark:text-white dark:from-white dark:to-gray-400">
-              Beehive
-            </h1>
-          </div>
-          <p className="text-gray-700 dark:text-gray-400 text-sm">
+          <Link to="/landing" className="block">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <motion.img
+                src="/favicon.png"
+                alt="Beehive Logo"
+                className="w-12 h-12"
+                whileHover={{ scale: 1.1, rotate: 10 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              />
+              <h1 className="text-3xl font-bold text-white">Beehive</h1>
+            </div>
+          </Link>
+
+          <p className="text-gray-800 text-sm">
             Transforming Alaska's Behavioral Health
           </p>
           {/* </Link> */}

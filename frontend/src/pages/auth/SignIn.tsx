@@ -13,35 +13,36 @@ const SignInPage = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  try {
-    const data = await apiFetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const data = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
 
-    const token = data.access_token;
-    saveToken(token);
+      const token = data.access_token;
+      saveToken(token);
 
-    const role = getUserRole();
-    navigate(role === "admin" ? "/admin" : "/dashboard");
-  } catch (err: any) {
-    setError(err.message || "Invalid credentials");
-  } finally {
-    setLoading(false);
-  }
-};
-
+      const role = getUserRole();
+      navigate(role === "admin" ? "/admin" : "/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 text-gray-900">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-gray-100">
+    <div className="inline-block">
+      <div className="bg-white p-8 rounded-xl shadow-xl max-w-md">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Sign In</h2>
-          <p className="text-gray-500 mt-2">Welcome back! Please enter your details.</p>
+          <p className="text-gray-500 mt-2">
+            Welcome back! Please enter your details.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -52,7 +53,9 @@ const SignInPage = () => {
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Username
+            </label>
             <input
               type="text"
               value={username}
@@ -64,7 +67,9 @@ const SignInPage = () => {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-gray-700 block mb-1.5">Password</label>
+            <label className="text-sm font-semibold text-gray-700 block mb-1.5">
+              Password
+            </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"} // Toggle type
@@ -95,7 +100,10 @@ const SignInPage = () => {
 
         <p className="text-center text-sm text-gray-500 mt-8">
           Don't have an account?{" "}
-          <a href="/signup" className="text-yellow-600 font-semibold hover:underline">
+          <a
+            href="/signup"
+            className="text-yellow-600 font-semibold hover:underline"
+          >
             Contact Admin
           </a>
         </p>

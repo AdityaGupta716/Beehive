@@ -30,9 +30,7 @@ const SignUpPage = () => {
       // if apiFetch didn't throw → success
       setStep("otp");
     } catch (err: any) {
-      setError(err.message || "Failed to send OTP");
-    } finally {
-      setLoading(false);
+      setError(err?.response?.error || err?.message || "Failed to send OTP");
     }
   };
 
@@ -57,80 +55,83 @@ const SignUpPage = () => {
   };
 
   const completeSignup = async () => {
-  setLoading(true);
-  setError("");
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email");
+      return;
+    }
 
-  try {
-    const data = await apiFetch("/api/auth/complete-signup", {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        username,
-        password,
-      }),
-    });
+    // Password length check
+    if (password.length < 4) {
+      setError("Password must be at least 4 characters");
+      return;
+    }
+    setLoading(true);
+    setError("");
 
-    saveToken(data.access_token);
+    try {
+      const data = await apiFetch("/api/auth/complete-signup", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          username,
+          password,
+        }),
+      });
 
-    // auto redirect
-    data.role === "admin"
-      ? navigate("/admin")
-      : navigate("/dashboard");
+      saveToken(data.access_token);
 
-  } catch (err: any) {
-    setError(err.message || "Failed to complete signup");
-  } finally {
-    setLoading(false);
-  }
-};
+      // auto redirect
+      data.role === "admin" ? navigate("/admin") : navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to complete signup");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const setPasswordAndSignup = async () => {
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  try {
-    const data = await apiFetch("/api/auth/set-password", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const data = await apiFetch("/api/auth/set-password", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    saveToken(data.access_token);
+      saveToken(data.access_token);
 
-    data.role === "admin"
-      ? navigate("/admin")
-        : navigate("/dashboard");
-
+      data.role === "admin" ? navigate("/admin") : navigate("/dashboard");
     } catch (err: any) {
-    setError(err.message || "Failed to create account");
-  } finally {
-    setLoading(false);
-  }
-};
+      setError(err.message || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const googleSignIn = async () => {
-  setError("");
+    setError("");
 
-  try {
-    const data = await apiFetch("/api/auth/google", {
-      method: "POST",
-      body: JSON.stringify({ email: "test@gmail.com", name: "Google User" }),
-    });
+    try {
+      const data = await apiFetch("/api/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ email: "test@gmail.com", name: "Google User" }),
+      });
 
-    saveToken(data.access_token);
+      saveToken(data.access_token);
 
-    data.role === "admin"
-      ? navigate("/admin")
-      : navigate("/dashboard");
-
-  } catch (err: any) {
-    setError(err.message || "Google sign-in failed");
-  }
-};
+      data.role === "admin" ? navigate("/admin") : navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Google sign-in failed");
+    }
+  };
 
   return (
     // Added text-gray-900 to ensure text visibility across all systems
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 text-gray-900">
-      <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-200">
+    <div className="inline-block">
+      <div className="bg-white p-8 rounded-xl shadow-xl max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
           Sign Up
         </h2>
@@ -152,7 +153,8 @@ const SignUpPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
               />
-              <button onClick={requestOtp}>Send OTP</button>
+              <button onClick={requestOtp}
+              className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition">Send OTP</button>
             </>
           )}
 
@@ -165,7 +167,8 @@ const SignUpPage = () => {
                 onChange={(e) => setOtp(e.target.value)}
                 className="input"
               />
-              <button onClick={verifyOtp}>Verify OTP</button>
+              <button onClick={verifyOtp}
+              className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition">Verify OTP</button>
             </>
           )}
 
@@ -187,7 +190,8 @@ const SignUpPage = () => {
                 className="input"
               />
 
-              <button onClick={completeSignup}>Create Account</button>
+              <button onClick={completeSignup}
+              className="w-full bg-yellow-400 text-black py-2 rounded-md hover:bg-yellow-600 transition">Create Account</button>
             </>
           )}
 

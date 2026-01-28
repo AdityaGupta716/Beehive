@@ -1,3 +1,5 @@
+import email
+import re
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timedelta, timezone
 import random
@@ -38,7 +40,10 @@ def request_otp():
 
     if not email:
         return jsonify({"error": "Email required"}), 400
+    existing_user = db.users.find_one({"email": email})
 
+    if existing_user:
+        return jsonify({"error": "Email already registered"}), 400
     otp = create_email_otp(email)
 
     # send the OTP via email
@@ -109,7 +114,13 @@ def complete_signup():
 
     if not email or not username or not password:
         return jsonify({"error": "Missing fields"}), 400
-
+    # Validate email format
+    email_regex = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    if not re.match(email_regex, email):
+        return jsonify({"error": "Invalid email format"}), 400
+    # Validate password length
+    if len(password) < 4:
+        return jsonify({"error": "Password must be at least 4 characters"}), 400
     # Prevent duplicate username
     if db.users.find_one({"username": username}):
         return jsonify({"error": "Username already taken"}), 400
