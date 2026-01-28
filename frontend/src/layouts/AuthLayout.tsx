@@ -95,11 +95,11 @@ const AuthLayout = () => {
                 whileHover={{ scale: 1.1, rotate: 10 }}
                 transition={{ type: "spring", stiffness: 400 }}
               />
-              <h1 className="text-3xl font-bold text-white">Beehive</h1>
+              <h1 className="text-3xl font-bold text-gray-500">Beehive</h1>
             </div>
           </Link>
 
-          <p className="text-gray-800 text-sm">
+          <p className="text-gray-500 text-sm">
             Transforming Alaska's Behavioral Health
           </p>
           {/* </Link> */}
