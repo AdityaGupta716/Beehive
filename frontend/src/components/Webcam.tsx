@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CameraIcon, XMarkIcon, ArrowPathIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { CameraIcon, XMarkIcon, ArrowPathIcon, CheckIcon, ArrowPathRoundedSquareIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 
 interface WebcamProps {
@@ -15,20 +15,47 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
   const [error, setError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
 
-  const startCamera = async () => {
+  const enumerateCameras = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setAvailableCameras(videoDevices);
+      return videoDevices;
+    } catch (err) {
+      console.error("Failed to enumerate cameras:", err);
+      return [];
+    }
+  };
+
+  const startCamera = async (deviceId?: string) => {
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
+
+      const constraints: MediaStreamConstraints = {
+        video: deviceId
+          ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+          : { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // Store current device ID
+      const videoTrack = stream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      setCurrentCameraId(settings.deviceId || null);
 
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
       setIsCameraActive(true);
+
+      // Enumerate cameras after first access (permissions granted)
+      await enumerateCameras();
     } catch (err) {
       console.error("Camera error:", err);
       const errorMessage =
@@ -119,6 +146,28 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
     setCapturedFile(null);
     // Restart camera
     startCamera();
+  };
+
+  const switchCamera = async () => {
+    if (availableCameras.length <= 1) {
+      toast.error("No other cameras available");
+      return;
+    }
+
+    // Find next camera
+    const currentIndex = availableCameras.findIndex(
+      cam => cam.deviceId === currentCameraId
+    );
+    const nextIndex = (currentIndex + 1) % availableCameras.length;
+    const nextCamera = availableCameras[nextIndex];
+
+    // Stop current camera
+    stopCamera();
+
+    // Start new camera
+    await startCamera(nextCamera.deviceId);
+
+    toast.success(`Switched to ${nextCamera.label || 'camera ' + (nextIndex + 1)}`);
   };
 
   const handleSubmit = () => {
@@ -236,6 +285,17 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
         </div>
       )}
 
+      {/* Switch Camera Button */}
+      {isCameraActive && !error && !capturedImage && availableCameras.length > 1 && (
+        <button
+          onClick={switchCamera}
+          className="absolute top-4 left-4 p-2 bg-white rounded-full text-black shadow-lg hover:bg-gray-100 transition-colors z-10"
+          title="Switch Camera"
+        >
+          <ArrowPathRoundedSquareIcon className="h-6 w-6" />
+        </button>
+      )}
+
       {/* Close Button */}
       {onClose && (
         <button
@@ -251,11 +311,11 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
       {!isCameraActive && !error && !capturedImage && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <button
-            onClick={startCamera}
+            onClick={() => startCamera()}
             className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 px-6 rounded-lg transition-colors shadow-lg"
           >
             <CameraIcon className="h-6 w-6" />
-            <span>Click Photo</span>
+            <span>Start Camera</span>
           </button>
         </div>
       )}
