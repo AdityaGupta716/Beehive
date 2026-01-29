@@ -45,13 +45,21 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
   };
 
   const stopCamera = () => {
+    // Stop all tracks in the stream
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
       streamRef.current = null;
     }
+
+    // Clear video element source and pause
     if (videoRef.current) {
       videoRef.current.srcObject = null;
+      videoRef.current.pause();
+      videoRef.current.load(); // Reset the video element
     }
+
     setIsCameraActive(false);
   };
 
@@ -115,19 +123,27 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
 
   const handleSubmit = () => {
     if (capturedFile) {
-      onCapture(capturedFile);
-      // Clean up
+      // Stop camera BEFORE calling onCapture
+      stopCamera();
+
+      // Clean up captured image URL
       if (capturedImage) {
         URL.revokeObjectURL(capturedImage);
       }
-      toast.success("Photo ready to upload!");
+
+      // Reset states
+      setCapturedImage(null);
+      setCapturedFile(null);
+
+      // Extra safety: Wait a tick to ensure camera is fully released (Chrome bug workaround)
+      setTimeout(() => {
+        onCapture(capturedFile);
+      }, 100);
     }
   };
 
-  // Auto-start camera on mount
+  // Cleanup on unmount only (DO NOT auto-start)
   useEffect(() => {
-    startCamera();
-
     // Cleanup on unmount
     return () => {
       stopCamera();
