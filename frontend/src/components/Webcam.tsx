@@ -172,26 +172,24 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
 
   const handleSubmit = () => {
     if (capturedFile) {
-      // Stop camera BEFORE calling onCapture
       stopCamera();
 
-      // Clean up captured image URL
       if (capturedImage) {
         URL.revokeObjectURL(capturedImage);
       }
 
-      // Reset states
+
       setCapturedImage(null);
       setCapturedFile(null);
 
-      // Extra safety: Wait a tick to ensure camera is fully released (Chrome bug workaround)
+
       setTimeout(() => {
         onCapture(capturedFile);
       }, 100);
     }
   };
 
-  // Cleanup on unmount only (DO NOT auto-start)
+
   useEffect(() => {
     // Cleanup on unmount
     return () => {
@@ -212,7 +210,7 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center">
-      {/* Video Feed or Captured Image */}
+
       {capturedImage ? (
         <img
           src={capturedImage}
@@ -231,7 +229,7 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
       {/* Hidden canvas for capturing */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Error Message */}
+
       {error && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg text-center max-w-md z-20">
           <p className="font-semibold mb-2">Camera Error</p>
@@ -245,7 +243,7 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
         </div>
       )}
 
-      {/* Camera Controls - Capture Button */}
+      {/* Camera Controls */}
       {isCameraActive && !error && !capturedImage && (
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
           <button
