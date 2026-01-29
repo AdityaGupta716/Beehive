@@ -255,7 +255,7 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
             className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 px-6 rounded-lg transition-colors shadow-lg"
           >
             <CameraIcon className="h-6 w-6" />
-            <span>Start Camera</span>
+            <span>Click Photo</span>
           </button>
         </div>
       )}
