@@ -178,14 +178,10 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
         URL.revokeObjectURL(capturedImage);
       }
 
+      onCapture(capturedFile);
 
       setCapturedImage(null);
       setCapturedFile(null);
-
-
-      setTimeout(() => {
-        onCapture(capturedFile);
-      }, 100);
     }
   };
 
