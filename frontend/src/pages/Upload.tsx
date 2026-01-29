@@ -21,24 +21,24 @@ import useObjectUrl from "../hooks/useObjectUrl";
 import Webcam from "../components/Webcam";
 
 const allowedFileTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/heif",
-  "application/pdf",
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heif',
+  'application/pdf',
 ];
 
-type SentimentType = "positive" | "neutral" | "negative" | "custom";
+type SentimentType = 'positive' | 'neutral' | 'negative' | 'custom';
 
 const Upload = () => {
   const tokenFromStorage = getToken();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [sentiment, setSentiment] = useState<SentimentType>("neutral");
-  const [customSentiment, setCustomSentiment] = useState("");
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [sentiment, setSentiment] = useState<SentimentType>('neutral');
+  const [customSentiment, setCustomSentiment] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedVoiceNote, setSelectedVoiceNote] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -57,7 +57,7 @@ const Upload = () => {
   const audioUrl = useObjectUrl(selectedVoiceNote);
   const hasHydratedDraft = useRef(false);
   const getDraftKey = useCallback(() => {
-    return `uploadDraft:${user?.id ?? "anon"}`;
+    return `uploadDraft:${user?.id ?? 'anon'}`;
   }, [user?.id]);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ const Upload = () => {
       if (draft.customSentiment !== undefined)
         setCustomSentiment(draft.customSentiment);
     } catch (err) {
-      console.warn("Failed to load upload draft", err);
+      console.warn('Failed to load upload draft', err);
     } finally {
       hasHydratedDraft.current = true;
     }
@@ -91,7 +91,7 @@ const Upload = () => {
     const isEmpty =
       !title.trim() &&
       !description.trim() &&
-      sentiment === "neutral" &&
+      sentiment === 'neutral' &&
       !customSentiment.trim();
 
     if (isEmpty) {
@@ -159,45 +159,45 @@ const Upload = () => {
       if (!imageFile && !audioFile) return;
 
       setIsAnalyzing(true);
-      const analysisToast = toast.loading("AI is analyzing your media...");
+      const analysisToast = toast.loading('AI is analyzing your media...');
 
       try {
         const token = tokenFromStorage;
         if (!token) {
-          throw new Error("User not authenticated");
+          throw new Error('User not authenticated');
         }
 
         const formData = new FormData();
         if (imageFile) {
-          formData.append("image", imageFile);
+          formData.append('image', imageFile);
         }
         if (audioFile) {
-          formData.append("audio", audioFile);
+          formData.append('audio', audioFile);
         }
 
-        const response = await fetch(apiUrl("/api/analyze-media"), {
-          method: "POST",
+        const response = await fetch(apiUrl('/api/analyze-media'), {
+          method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-          credentials: "include",
+          credentials: 'include',
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "AI analysis failed");
+          throw new Error(data.error || 'AI analysis failed');
         }
 
-        setTitle(data.title || "");
-        setDescription(data.description || "");
+        setTitle(data.title || '');
+        setDescription(data.description || '');
 
         const suggestedSentiment = data.sentiment as SentimentType;
-        if (["positive", "neutral", "negative"].includes(suggestedSentiment)) {
+        if (['positive', 'neutral', 'negative'].includes(suggestedSentiment)) {
           setSentiment(suggestedSentiment);
         } else if (data.sentiment) {
-          setSentiment("custom");
+          setSentiment('custom');
           setCustomSentiment(data.sentiment);
         }
 
@@ -296,10 +296,10 @@ const Upload = () => {
 
   const startRecording = async () => {
     try {
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "audio/ogg";
-      const fileExtension = mimeType === "audio/ogg" ? "ogg" : "webm";
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/ogg';
+      const fileExtension = mimeType === 'audio/ogg' ? 'ogg' : 'webm';
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -325,8 +325,8 @@ const Upload = () => {
       setIsRecording(true);
       setRecordingTime(0);
     } catch (error) {
-      console.error("Error accessing microphone:", error);
-      toast.error("Error accessing microphone");
+      console.error('Error accessing microphone:', error);
+      toast.error('Error accessing microphone');
     }
   };
 
@@ -347,8 +347,8 @@ const Upload = () => {
         setIsPlaying(false);
       } else {
         audioRef.current.play().catch((error) => {
-          console.error("Error playing audio:", error);
-          toast.error("Error playing audio");
+          console.error('Error playing audio:', error);
+          toast.error('Error playing audio');
         });
         setIsPlaying(true);
       }
@@ -373,35 +373,34 @@ const Upload = () => {
     e.preventDefault();
 
     if (!selectedImage) {
-      toast.error("Please select an image");
+      toast.error('Please select an image');
       return;
     }
 
     if (!user?.id) {
-      toast.error("User not authenticated");
+      toast.error('User not authenticated');
       return;
     }
 
     try {
       setIsUploading(true);
 
-      // Client-side token expiry check to avoid ambiguous server 401s
+        
       const rawToken = tokenFromStorage;
       if (!rawToken) {
-        toast.error("User not authenticated. Please sign in.");
+        toast.error('User not authenticated. Please sign in.');
         return;
       }
       try {
         const payload = JSON.parse(atob(rawToken.split(".")[1]));
         if (payload.exp && payload.exp * 1000 <= Date.now()) {
-          toast.error("Session expired. Redirecting to landing...");
+          toast.error('Session expired. Redirecting to landing...');
           logout();
-          navigate("/landing");
+          navigate('/landing');
           return;
         }
       } catch (e) {
-        // If token malformed, proceed and let server return proper error
-        console.warn("Could not parse token payload", e);
+        console.warn('Could not parse token payload', e);
       }
 
       // Create FormData
