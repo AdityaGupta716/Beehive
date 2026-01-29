@@ -257,6 +257,22 @@ const Upload = () => {
     };
   }, [isPreviewing]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsWebcamOpen(false);
+      }
+    };
+
+    if (isWebcamOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isWebcamOpen]);
+
   const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -385,7 +401,7 @@ const Upload = () => {
     try {
       setIsUploading(true);
 
-        
+
       const rawToken = tokenFromStorage;
       if (!rawToken) {
         toast.error('User not authenticated. Please sign in.');
