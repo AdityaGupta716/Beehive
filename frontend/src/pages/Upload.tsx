@@ -243,35 +243,26 @@ const Upload = () => {
     setSelectedImage(file);
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsPreviewing(false);
-      }
-    };
-    if (isPreviewing) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isPreviewing]);
-
+  // Handle Escape key for all modals
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsWebcamOpen(false);
+        if (isWebcamOpen) {
+          setIsWebcamOpen(false);
+        } else if (isPreviewing) {
+          setIsPreviewing(false);
+        }
       }
     };
 
-    if (isWebcamOpen) {
+    if (isPreviewing || isWebcamOpen) {
       window.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isWebcamOpen]);
+  }, [isPreviewing, isWebcamOpen]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
