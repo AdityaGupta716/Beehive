@@ -78,17 +78,39 @@ def get_currentuser_from_session():
     return user
 
 # Get all images from MongoDB
-def get_images_by_user(user_id):
-    images = beehive_image_collection.find({'user_id': user_id})
+def get_images_by_user(user_id, limit=None, offset=None):
+    """
+    Return a list of images for a user.
+    If `limit` and `offset` are provided, apply pagination (skip/limit).
+    Keeps previous behavior when called without pagination args.
+    """
+    cursor = beehive_image_collection.find({'user_id': user_id}).sort('created_at', -1)
+    if offset is not None:
+        try:
+            cursor = cursor.skip(int(offset))
+        except Exception:
+            pass
+    if limit is not None:
+        try:
+            cursor = cursor.limit(int(limit))
+        except Exception:
+            pass
+
     return [{
         'id': str(image['_id']),
-        'filename': image['filename'],
-        'title': image['title'],
-        'description': image['description'],
+        'filename': image.get('filename', ''),
+        'title': image.get('title', ''),
+        'description': image.get('description', ''),
         'audio_filename': image.get('audio_filename', ""),
         'sentiment': image.get('sentiment', ""),
         'created_at': image['created_at']['$date'] if isinstance(image.get('created_at'), dict) else image.get('created_at')
-    } for image in images]
+    } for image in cursor]
+
+def count_images_by_user(user_id):
+    try:
+        return beehive_image_collection.count_documents({'user_id': user_id})
+    except Exception:
+        return 0
 
 # Get paginated images (method)
 def _get_paginated_images_by_user(user_id, page=1, page_size=12):

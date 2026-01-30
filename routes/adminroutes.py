@@ -6,6 +6,7 @@ from database.userdatahandler import (
     get_upload_stats,
     get_upload_analytics
 )
+from utils.pagination import parse_pagination_params
 from utils.logger import Logger
 from utils.sanitize import sanitize_api_query
 
@@ -20,12 +21,7 @@ from database.databaseConfig import beehive
 @require_admin_role
 def admin_user_images_show(user_id):
     try:
-        page = int(request.args.get("page", 1))
-        page_size = int(request.args.get("page_size", 12))
-
-        page = max(1, page)
-        page_size = min(max(1, page_size), 50)
-
+        page, page_size = parse_pagination_params(default_page=1, default_size=12, max_size=50)
         result = _get_paginated_images_by_user(user_id, page, page_size)
         return jsonify(result), 200
 

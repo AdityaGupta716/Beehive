@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getToken } from '../../utils/auth';
 import { motion } from 'framer-motion';
+import Pagination from '../../components/ui/Pagination';
 import { ArrowLeftIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { apiUrl } from '../../utils/api';
@@ -28,13 +29,13 @@ const UserUploads = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Pagination states
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
-  const pageSize = 12;
+  const [pageSize, setPageSize] = useState(12);
 
   // Fetch uploads with pagination
   const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -47,8 +48,6 @@ const UserUploads = () => {
         setLoadingMore(true);
       }
       
-      // Get the authentication token from local storage
-      // token is already available from helper above
       
       const response = await fetch(apiUrl(`/api/admin/user_uploads/${userId}?page=${page}&page_size=${pageSize}`), {
         method: 'GET',
@@ -95,6 +94,10 @@ const UserUploads = () => {
       setLoadingMore(false);
     }
   }, [userId, pageSize]);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchUploads(page, false);
+  };
 
   // Initial fetch
   useEffect(() => {
@@ -212,11 +215,26 @@ const UserUploads = () => {
           <h1 className="text-3xl font-bold mt-4">
             Uploads by {userName}
           </h1>
-          {totalCount > 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Showing {uploads.length} of {totalCount} uploads
-            </p>
-          )}
+          <div className="mt-2 flex items-center space-x-4">
+            {totalCount > 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Showing {uploads.length} of {totalCount} uploads
+              </p>
+            )}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600 dark:text-gray-300">Items:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => { const v = Number(e.target.value) || 12; setPageSize(v); setCurrentPage(1); fetchUploads(1,false); }}
+                className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
@@ -342,6 +360,10 @@ const UserUploads = () => {
               </table>
             )}
           </div>
+
+            <div className="p-4">
+              <Pagination page={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+            </div>
           
           {/* Infinite scroll observer target */}
           <div 
