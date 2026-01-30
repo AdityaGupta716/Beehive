@@ -88,13 +88,13 @@ def get_images_by_user(user_id, limit=None, offset=None):
     if offset is not None:
         try:
             cursor = cursor.skip(int(offset))
-        except Exception:
-            pass
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid offset value: {offset}. Error: {e}")
     if limit is not None:
         try:
             cursor = cursor.limit(int(limit))
-        except Exception:
-            pass
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid limit value: {limit}. Error: {e}")
 
     return [{
         'id': str(image['_id']),
@@ -109,7 +109,8 @@ def get_images_by_user(user_id, limit=None, offset=None):
 def count_images_by_user(user_id):
     try:
         return beehive_image_collection.count_documents({'user_id': user_id})
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error counting images for user {user_id}: {e}")
         return 0
 
 # Get paginated images (method)

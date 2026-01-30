@@ -34,7 +34,6 @@ const UserUploads = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const observerTarget = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState(12);
 
   // Fetch uploads with pagination
@@ -108,35 +107,7 @@ const UserUploads = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Infinite scroll with IntersectionObserver
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && !loadingMore && !loading && currentPage < totalPages) {
-          const nextPage = currentPage + 1;
-          console.log(`Loading page ${nextPage}...`);
-          fetchUploads(nextPage, true);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '100px',
-        threshold: 0.1,
-      }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [currentPage, totalPages, loadingMore, loading, fetchUploads]);
+  // Pagination is handled via explicit controls (no infinite scroll)
 
   const handleFileClick = (filename: string) => {
     setSelectedFile(filename);
@@ -225,7 +196,12 @@ const UserUploads = () => {
               <label className="text-sm text-gray-600 dark:text-gray-300">Items:</label>
               <select
                 value={pageSize}
-                onChange={(e) => { const v = Number(e.target.value) || 12; setPageSize(v); setCurrentPage(1); fetchUploads(1,false); }}
+                onChange={(e) => {
+                  const v = Number(e.target.value) || 12;
+                  setPageSize(v);
+                  setCurrentPage(1);
+                  fetchUploads(1, false);
+                }}
                 className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
               >
                 <option value={10}>10</option>
@@ -365,12 +341,7 @@ const UserUploads = () => {
               <Pagination page={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
             </div>
           
-          {/* Infinite scroll observer target */}
-          <div 
-            ref={observerTarget} 
-            className="w-full h-4 mt-8"
-            aria-label="Infinite scroll trigger"
-          />
+          
 
           {/* Loading indicator */}
           {loadingMore && (

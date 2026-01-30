@@ -32,9 +32,21 @@ const Pagination: React.FC<Props> = ({ page, totalPages, onPageChange }) => {
 
   return (
     <div className="flex items-center justify-center space-x-2 mt-4">
-      <button onClick={prev} className="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700">Prev</button>
+      <button
+        onClick={prev}
+        disabled={page <= 1}
+        className="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Prev
+      </button>
       {renderPageButtons()}
-      <button onClick={next} className="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700">Next</button>
+      <button
+        onClick={next}
+        disabled={page >= totalPages}
+        className="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Next
+      </button>
     </div>
   );
 };
