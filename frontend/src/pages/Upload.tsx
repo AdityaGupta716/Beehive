@@ -423,8 +423,8 @@ const Upload = () => {
       const formData = new FormData();
       const usernameForUpload =
         user?.firstName || user?.lastName
-          ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
-          : user?.name || user?.id || "";
+          ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+          : user?.name ?? user?.id ?? "";
 
       formData.append("username", usernameForUpload);
       formData.append("files", selectedImage);
