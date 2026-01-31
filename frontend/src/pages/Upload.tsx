@@ -536,7 +536,7 @@ const Upload = () => {
               )}
             </div>
 
-            <h2 className='text-center mt-3 text-gray-400 '>OR</h2>
+            <h2 className="text-center mt-3 text-gray-400">OR</h2>
 
             {/* Click Photo */}
             <div className="mt-4 flex justify-center">
