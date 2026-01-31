@@ -128,7 +128,7 @@ const Gallery = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const observerTarget = useRef<HTMLDivElement>(null);
+  
   
   const [searchQuery, setSearchQuery] = useState('');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
@@ -254,34 +254,7 @@ const Gallery = () => {
   // Infinite scroll 
   useEffect(() => {
     if (viewMode === 'rolling') return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && !loadingMore && !loading && currentPage < totalPages) {
-          const nextPage = currentPage + 1;
-          console.log(`Loading page ${nextPage}...`);
-          fetchUploads(nextPage, true);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '1200px',
-        threshold: 0,
-      }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [currentPage, totalPages, loadingMore, loading, fetchUploads, viewMode]);
+  }, [viewMode]);
 
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
@@ -331,14 +304,15 @@ const Gallery = () => {
       }
 
       const newImages = images.filter(img => img.id !== id);
+      setImages(newImages);
+      setTotalCount((prev) => Math.max(0, prev - 1));
+
       if (newImages.length === 0 && currentPage > 1) {
-        const newPage = currentPage - 1;
-        setCurrentPage(newPage);
-        await fetchUploads(newPage, false);
+        handlePageChange(currentPage - 1);
       } else {
-        setImages(newImages);
-        await fetchUploads(currentPage, false);
+        fetchUploads(currentPage, false);
       }
+
       toast.success('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
