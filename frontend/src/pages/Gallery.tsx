@@ -214,10 +214,6 @@ const Gallery = () => {
     }
   }, [user?.id, fetchUploads]);
 
-  useEffect(() => {
-    if (viewMode === 'rolling') return;
-  }, [viewMode]);
-
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
   };
@@ -676,10 +672,12 @@ const Gallery = () => {
                 <label className="text-sm text-gray-600 dark:text-gray-300">Items:</label>
                 <select
                   value={pageSize}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const v = Number(e.target.value) || 10;
                     setPageSize(v);
                     setCurrentPage(1);
+                    // Wait for next tick to ensure state updates
+                    await new Promise(resolve => setTimeout(resolve, 0));
                     fetchUploads(1, false);
                   }}
                   className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
@@ -687,7 +685,6 @@ const Gallery = () => {
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
-                  <option value={100}>100</option>
                 </select>
               </div>
             </div>
