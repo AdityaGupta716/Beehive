@@ -248,15 +248,20 @@ const Gallery = () => {
     }
 
     try {
-      await apiDelete(`/delete/${id}`, getToken);
-
+      // Optimistically update UI for immediate feedback
       const newImages = images.filter(img => img.id !== id);
       setImages(newImages);
-      setTotalCount((prev) => Math.max(0, prev - 1));
+      setTotalCount(prevCount => prevCount - 1);
 
+      // Perform the deletion
+      await apiDelete(`/delete/${id}`, getToken);
+
+      // If the last item on a page (other than the first) was deleted, go to the previous page
       if (newImages.length === 0 && currentPage > 1) {
         handlePageChange(currentPage - 1);
       } else {
+        // Refetch the current page to pull a new item from the next page if available
+        // and to ensure pagination metadata is correct
         fetchUploads(currentPage, false);
       }
 
@@ -264,6 +269,8 @@ const Gallery = () => {
     } catch (error) {
       console.error('Error deleting image:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete image');
+      // On error, refetch to restore correct state
+      fetchUploads(currentPage, false);
     }
   };
 
