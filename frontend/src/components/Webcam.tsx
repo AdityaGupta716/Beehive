@@ -138,10 +138,7 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
   };
 
   const handleRetake = () => {
-    // Clean up the captured image
-    if (capturedImage) {
-      URL.revokeObjectURL(capturedImage);
-    }
+    // Reset captured image state
     setCapturedImage(null);
     setCapturedFile(null);
     // Restart camera
@@ -174,10 +171,6 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
     if (capturedFile) {
       stopCamera();
 
-      if (capturedImage) {
-        URL.revokeObjectURL(capturedImage);
-      }
-
       onCapture(capturedFile);
 
       setCapturedImage(null);
@@ -205,9 +198,6 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
 
   const handleClose = () => {
     stopCamera();
-    if (capturedImage) {
-      URL.revokeObjectURL(capturedImage);
-    }
     onClose?.();
   };
 
