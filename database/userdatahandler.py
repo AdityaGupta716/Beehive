@@ -108,6 +108,7 @@ def get_images_by_user(user_id, limit=None, offset=None):
 
 def count_images_by_user(user_id):
     try:
+    try:
         return beehive_image_collection.count_documents({'user_id': user_id})
     except Exception as e:
         logger.error(f"Error counting images for user {user_id}: {e}")
