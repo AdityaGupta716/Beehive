@@ -190,11 +190,18 @@ const Webcam = ({ onCapture, onClose }: WebcamProps) => {
     // Cleanup on unmount
     return () => {
       stopCamera();
-      if (capturedImage) {
-        URL.revokeObjectURL(capturedImage);
-      }
     };
   }, []);
+
+  useEffect(() => {
+    // This effect manages the lifecycle of the captured image URL.
+    // It will be revoked on unmount or when a new image is captured.
+    if (!capturedImage) return;
+
+    return () => {
+      URL.revokeObjectURL(capturedImage);
+    };
+  }, [capturedImage]);
 
   const handleClose = () => {
     stopCamera();
