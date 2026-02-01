@@ -114,16 +114,77 @@ def count_images_by_user(user_id):
         return 0
 
 # Get paginated images (method)
-def _get_paginated_images_by_user(user_id, page=1, page_size=12):
+def _get_paginated_images_by_user(user_id, page=1, page_size=12, filters=None):
+    """
+    Get paginated images for a user with optional filters.
     
+    Args:
+        user_id: The user's ID
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        filters: Dictionary of filters - can contain:
+            - 'q': search query (matches title or description)
+            - 'sentiment': sentiment filter
+            - 'date_filter': 'week', 'month', or 'custom'
+            - 'from': custom start date (ISO string)
+            - 'to': custom end date (ISO string)
+    """
     try:
+        from datetime import datetime, timedelta
+        
         skip = (page - 1) * page_size
         
-        # total count 
-        total_count = beehive_image_collection.count_documents({'user_id': user_id})
+        # Build query
+        query = {'user_id': user_id}
+        
+        # Apply filters if provided
+        if filters:
+            # Search query filter
+            if filters.get('q'):
+                search_query = filters['q']
+                query['$or'] = [
+                    {'title': {'$regex': search_query, '$options': 'i'}},
+                    {'description': {'$regex': search_query, '$options': 'i'}}
+                ]
+            
+            # Sentiment filter
+            if filters.get('sentiment') and filters['sentiment'] != 'all':
+                query['sentiment'] = filters['sentiment']
+            
+            # Date filter
+            date_filter = filters.get('date_filter')
+            if date_filter and date_filter != 'all':
+                now = datetime.utcnow()
+                if date_filter == 'week':
+                    start_date = now - timedelta(days=7)
+                    query['created_at'] = {'$gte': start_date}
+                elif date_filter == 'month':
+                    start_date = now - timedelta(days=30)
+                    query['created_at'] = {'$gte': start_date}
+                elif date_filter == 'custom':
+                    date_range = {}
+                    if filters.get('from'):
+                        try:
+                            from_date = datetime.fromisoformat(filters['from'].replace('Z', '+00:00'))
+                            date_range['$gte'] = from_date
+                        except (ValueError, AttributeError):
+                            logger.warning(f"Invalid 'from' date format: {filters.get('from')}")
+                    if filters.get('to'):
+                        try:
+                            to_date = datetime.fromisoformat(filters['to'].replace('Z', '+00:00'))
+                            # Add one day to include the entire 'to' date
+                            to_date = to_date + timedelta(days=1)
+                            date_range['$lt'] = to_date
+                        except (ValueError, AttributeError):
+                            logger.warning(f"Invalid 'to' date format: {filters.get('to')}")
+                    if date_range:
+                        query['created_at'] = date_range
+        
+        # total count with filters applied
+        total_count = beehive_image_collection.count_documents(query)
         
         # Get images
-        images = list(beehive_image_collection.find({'user_id': user_id})
+        images = list(beehive_image_collection.find(query)
                       .sort('created_at', -1)
                       .skip(skip)
                       .limit(page_size))

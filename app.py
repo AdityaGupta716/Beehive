@@ -665,7 +665,20 @@ def user_images_show():
     try:
         user_id = request.current_user["id"]
         page, page_size = parse_pagination_params(default_page=1, default_size=12, max_size=50)
-        result = _get_paginated_images_by_user(user_id, page, page_size)
+        
+        # Extract filter parameters from query string
+        filters = {
+            'q': request.args.get('q'),
+            'sentiment': request.args.get('sentiment'),
+            'date_filter': request.args.get('date_filter'),
+            'from': request.args.get('from'),
+            'to': request.args.get('to')
+        }
+        
+        # Remove None values
+        filters = {k: v for k, v in filters.items() if v is not None}
+        
+        result = _get_paginated_images_by_user(user_id, page, page_size, filters if filters else None)
         
         response_data = {
             "images": result['images'],
