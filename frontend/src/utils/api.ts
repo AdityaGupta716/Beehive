@@ -18,6 +18,22 @@ export class ApiError extends Error {
 
 export type GetTokenFn = () => Promise<string | null>;
 
+async function createAuthHeaders(
+  baseHeaders?: HeadersInit,
+  getToken?: GetTokenFn
+): Promise<Headers> {
+  const headers = new Headers(baseHeaders);
+
+  if (getToken) {
+    const token = await getToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
+  return headers;
+}
+
 async function apiFetch<T = any>(
   path: string,
   options: RequestInit = {},
@@ -25,16 +41,7 @@ async function apiFetch<T = any>(
 ): Promise<T> {
   const url = apiUrl(path);
   
-  const headers: HeadersInit = {
-    ...options.headers,
-  };
-
-  if (getToken) {
-    const token = await getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
+  const headers = await createAuthHeaders(options.headers, getToken);
 
   const response = await fetch(url, {
     ...options,
@@ -46,8 +53,11 @@ async function apiFetch<T = any>(
   const isJson = contentType?.includes('application/json');
 
   let data: any;
-  if (isJson) {
-    data = await response.json();
+  if (response.status === 204 || response.status === 205) {
+    data = null;
+  } else if (isJson) {
+    const text = await response.text();
+    data = text ? JSON.parse(text) : null;
   } else {
     data = await response.text();
   }
@@ -142,14 +152,7 @@ export async function apiGetBlob(
 ): Promise<Blob> {
   const url = apiUrl(path);
   
-  const headers: HeadersInit = {};
-
-  if (getToken) {
-    const token = await getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
+  const headers = await createAuthHeaders(undefined, getToken);
 
   const response = await fetch(url, {
     method: 'GET',

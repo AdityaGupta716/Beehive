@@ -262,7 +262,7 @@ const Gallery = () => {
     try {
       await apiDelete(`/delete/${id}`, getToken);
 
-      setImages(images.filter(img => img.id !== id));
+      setImages(prevImages => prevImages.filter(img => img.id !== id));
       toast.success('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
