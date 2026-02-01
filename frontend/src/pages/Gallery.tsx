@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-<<<<<<< HEAD
 import { useUser, useClerk } from '@clerk/clerk-react';
-import { apiUrl, apiGet, apiPatch, apiDelete, type GetTokenFn } from '../utils/api';
-=======
-import { apiUrl } from '../utils/api';
-import { getToken } from '../utils/auth';
->>>>>>> 7a83d8f730c9559a767d299fe91124ff5131de13
+import { apiUrl, apiGet, apiPatch, apiDelete, apiGetBlob, type GetTokenFn } from '../utils/api';
 import {
   PencilIcon,
   TrashIcon,
@@ -113,6 +108,9 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 };
 
 const Gallery = () => {
+  const { user } = useUser();
+  const clerk = useClerk();
+  
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -195,7 +193,6 @@ const Gallery = () => {
   }, [user?.id, getToken, pageSize]);
 
   useEffect(() => {
-<<<<<<< HEAD
     if (user?.id) {
       setCurrentPage(1);
       fetchUploads(1, false);
@@ -306,18 +303,7 @@ const Gallery = () => {
     }
 
     try {
-      const token = await getToken();
-      const response = await fetch(apiUrl(`/audio/${audioFilename}`), {
-        method: 'GET',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Audio load failed (${response.status})`);
-      }
-
-      const blob = await response.blob();
+      const blob = await apiGetBlob(`/audio/${audioFilename}`, getToken);
       const objectUrl = URL.createObjectURL(blob);
 
       setCurrentAudioUrl((prev) => {

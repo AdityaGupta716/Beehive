@@ -135,3 +135,34 @@ export async function apiPut<T = any>(
     getToken
   );
 }
+
+export async function apiGetBlob(
+  path: string,
+  getToken?: GetTokenFn
+): Promise<Blob> {
+  const url = apiUrl(path);
+  
+  const headers: HeadersInit = {};
+
+  if (getToken) {
+    const token = await getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new ApiError(
+      `Failed to fetch blob: ${response.statusText}`,
+      response.status
+    );
+  }
+
+  return response.blob();
+}
