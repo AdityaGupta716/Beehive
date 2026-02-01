@@ -92,7 +92,7 @@ const UserUploads = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [userId, pageSize]);
+  }, [userId, pageSize, token]);
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchUploads(page, false);
