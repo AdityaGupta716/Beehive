@@ -76,6 +76,10 @@ CORS(
     },
 )
 from config import Config
+
+# Validate configuration on startup - fail fast if config is missing or insecure
+Config.validate_config()
+
 app.config.from_object(Config)
 
 app.config.update(
