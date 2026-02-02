@@ -43,6 +43,7 @@ from pip._vendor import cachecontrol
 from werkzeug.utils import secure_filename
 from flask_mail import Mail, Message
 
+from database.databaseConfig import get_beehive_user_collection
 from database import userdatahandler
 from database.admindatahandler import is_admin
 from database.databaseConfig import (
@@ -829,7 +830,6 @@ def health_check():
         health_status = {"status": "healthy", "timestamp": datetime.datetime.now().isoformat()}
         
         # Optional: Check MongoDB connection
-        from database.databaseConfig import get_beehive_user_collection
         db_collection = get_beehive_user_collection()
         # Simple ping - will raise exception if DB unreachable
         db_collection.database.command('ping')
@@ -840,7 +840,7 @@ def health_check():
         app_logger.error(f"Health check failed: {str(e)}")
         return jsonify({
             "status": "unhealthy",
-            "error": str(e),
+            "error": "Service Unavailable",
             "timestamp": datetime.datetime.now().isoformat()
         }), 503
     
