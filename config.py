@@ -29,6 +29,8 @@ class Config:
         'dev-secret-change-this',
         'your_jwt_secret_here',
         'your_flask_secret_key_here',
+        'your_flask_secret_key_here_CHANGE_THIS',
+        'your_jwt_secret_here_CHANGE_THIS',
         'change-me',
         'secret',
     ]

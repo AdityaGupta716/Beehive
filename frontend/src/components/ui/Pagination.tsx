@@ -18,7 +18,6 @@ const Pagination: React.FC<Props> = ({ page, totalPages, onPageChange }) => {
 
     if (end === totalPages) {
       start = Math.max(1, totalPages - pageButtonCount + 1);
-      end = Math.min(totalPages, start + pageButtonCount - 1);
     }
 
     for (let p = start; p <= end; p++) {
