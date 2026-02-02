@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
-import { apiUrl, apiGet, apiPatch, apiDelete, apiGetBlob, type GetTokenFn } from '../utils/api';
+import { apiUrl } from '../utils/api';
+import { getToken } from '../utils/auth';
 import {
   PencilIcon,
   TrashIcon,
@@ -108,9 +108,6 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 };
 
 const Gallery = () => {
-  const { user } = useUser();
-  const clerk = useClerk();
-  
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -125,6 +122,7 @@ const Gallery = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentRollingIndex, setCurrentRollingIndex] = useState(0);
   
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -137,10 +135,21 @@ const Gallery = () => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
-  const getToken: GetTokenFn = useCallback(async () => {
-    return await clerk.session?.getToken() || null;
-  }, [clerk]);
+  // Function for authenticated API calls using JWT from localStorage
+  const authenticatedFetch = useCallback(async (path: string, options: RequestInit = {}) => {
+    const token = getToken() || '';
+    const headers = {
+      ...options.headers,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+    return fetch(apiUrl(path), { 
+      ...options, 
+      headers, 
+      credentials: 'include' 
+    });
+  }, []);
 
+  // Revoke current audio object URL and clear state
   const revokeCurrentAudioUrl = useCallback(() => {
     setCurrentAudioUrl((url) => {
       if (url) {
@@ -150,6 +159,7 @@ const Gallery = () => {
     });
   }, []);
 
+  // Fetch uploads with pagination support
   const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
       if (page === 1) {
@@ -158,12 +168,40 @@ const Gallery = () => {
         setLoadingMore(true);
       }
       
-      const data = await apiGet<{
-        images: Upload[];
-        totalPages: number;
-        total_count: number;
-        page: number;
-      }>(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, getToken);
+      const handleError = (message: string) => {
+        console.error('Error fetching uploads:', message);
+        if (page === 1) {
+          toast.error('Failed to fetch uploads');
+          setImages([]);
+        }
+      };
+
+      const response = await authenticatedFetch(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors'
+      });
+      
+      if (!response.ok) {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        handleError(errorMessage);
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        handleError(data.error);
+        return;
+      }
       
       const sortedImages: Upload[] = (data.images || []).sort((a: Upload, b: Upload) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -190,15 +228,15 @@ const Gallery = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [user?.id, getToken, pageSize]);
+  }, [authenticatedFetch, pageSize]);
 
+  // Initial fetch
   useEffect(() => {
-    if (user?.id) {
-      setCurrentPage(1);
-      fetchUploads(1, false);
-    }
-  }, [user?.id, fetchUploads]);
+    setCurrentPage(1);
+    fetchUploads(1, false);
+  }, [fetchUploads]);
 
+  // Infinite scroll 
   useEffect(() => {
     if (viewMode === 'rolling') return;
 
@@ -241,7 +279,15 @@ const Gallery = () => {
       formData.append('description', description);
       formData.append('sentiment', sentiment);
 
-      await apiPatch(`/edit/${id}`, formData, getToken);
+      const response = await authenticatedFetch(`/edit/${id}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update image');
+      }
 
       setImages(images.map(img => 
         img.id === id ? { ...img, title, description, sentiment } : img
@@ -260,9 +306,16 @@ const Gallery = () => {
     }
 
     try {
-      await apiDelete(`/delete/${id}`, getToken);
+      const response = await authenticatedFetch(`/delete/${id}`, {
+        method: 'DELETE',
+      });
 
-      setImages(prevImages => prevImages.filter(img => img.id !== id));
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete image');
+      }
+
+      setImages(images.filter(img => img.id !== id));
       toast.success('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
@@ -287,6 +340,7 @@ const Gallery = () => {
   };
 
   const handleAudioClick = async (audioFilename: string) => {
+    // Stop and clear if toggling the same audio
     if (currentAudio === audioFilename) {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -297,13 +351,22 @@ const Gallery = () => {
       return;
     }
 
+    // Stop any current playback before loading the next file
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
 
     try {
-      const blob = await apiGetBlob(`/audio/${audioFilename}`, getToken);
+      const response = await authenticatedFetch(`/audio/${audioFilename}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Audio load failed (${response.status})`);
+      }
+
+      const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
 
       setCurrentAudioUrl((prev) => {
@@ -361,8 +424,10 @@ const Gallery = () => {
 
   const getThumbnailUrl = (filename: string) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
+      // For PDFs, use the thumbnail
       return apiUrl(`/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`);
     }
+    // For images, use the original file
     return apiUrl(`/static/uploads/${filename}`);
   };
 
@@ -455,6 +520,7 @@ const Gallery = () => {
   const renderRollingView = () => {
     return (
       <div className="relative w-full mx-auto overflow-hidden">
+        {/* Enhanced Navigation Controls */}
         <div className="absolute top-1/2 -translate-y-1/2 lg:left-1 lg:right-1 left-0 right-0 z-10 flex justify-between pointer-events-none">
           <motion.button
             onClick={() => handleRollingNavigation('prev')}
@@ -508,6 +574,7 @@ const Gallery = () => {
                       className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
                     />
                   
+                  {/* Enhanced Overlay */}
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -949,18 +1016,21 @@ const Gallery = () => {
 
 
 
+            {/* Infinite scroll observer target */}
             <div 
               ref={observerTarget} 
               className="w-full h-4 mt-8"
               aria-label="Infinite scroll trigger"
             />
 
+            {/* Loading indicator */}
             {loadingMore && (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
               </div>
             )}
 
+            {/* End of page indicator */}
             {currentPage >= totalPages && images.length > 0 && (
               <div className="flex justify-center py-8">
                 <p className="text-gray-500 dark:text-gray-400 text-center">
