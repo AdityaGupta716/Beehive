@@ -71,6 +71,23 @@ CORS(
             "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
             "supports_credentials": True,
+        },
+        r"/delete/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+        },
+        r"/edit/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["PATCH", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+        },
+        r"/audio/*": {
+            "origins": ["http://localhost:5173"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
         }
     },
 )
