@@ -611,9 +611,9 @@ def serve_audio(filename):
             return jsonify({"error": "Audio file not found"}), 404
         
         # Get current user info from the JWT token (set by @require_auth decorator)
-        current_user_id = request.current_user["id"]
+        current_user_id = request.current_user.get("id")
         current_user_role = request.current_user.get("role", "user")
-        image_owner_id = image["user_id"]
+        image_owner_id = image.get("user_id")
         
         # Allow access if user is admin OR owns the audio file
         is_admin = current_user_role == "admin"
