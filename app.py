@@ -598,7 +598,7 @@ def edit_image(image_id):
         return jsonify({"error": "Failed to update image. Please try again."}), 500
 
 
-@app.route("/audio/<filename>")
+@app.route("/api/audio/<filename>")
 @require_auth
 def serve_audio(filename):
     """Serve audio files with ownership verification to prevent IDOR attacks."""
