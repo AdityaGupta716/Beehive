@@ -247,6 +247,9 @@ def google_auth():
         name = idinfo.get("name") or idinfo.get("given_name")
         sub = idinfo.get("sub")
 
+        if not email:
+            return jsonify({"error": "Email not present in token"}), 400
+
         if not idinfo.get("email_verified"):
             return jsonify({"error": "Email not verified"}), 403
 
