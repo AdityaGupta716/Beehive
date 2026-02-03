@@ -86,6 +86,7 @@ CORS(
         },
         r"/audio/*": {
             "origins": ["http://localhost:5173"],
+            "methods": ["GET", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
             "supports_credentials": True,
         }
