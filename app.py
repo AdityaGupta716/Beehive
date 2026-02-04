@@ -54,6 +54,7 @@ from database.userdatahandler import (
     delete_image,
     get_all_users,
     get_image_by_id,
+    get_image_by_audio_filename,
     get_images_by_user,
     _get_paginated_images_by_user,
     get_user_by_username,
@@ -70,6 +71,24 @@ CORS(
         r"/api/*": {
             "origins": ["http://localhost:5173"],
             "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+        },
+        r"/delete/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+        },
+        r"/edit/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["PATCH", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+        },
+        r"/audio/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["GET", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
             "supports_credentials": True,
         }
@@ -598,10 +617,36 @@ def edit_image(image_id):
         return jsonify({"error": "Failed to update image. Please try again."}), 500
 
 
-@app.route("/audio/<filename>")
+@app.route("/api/audio/<filename>")
 @require_auth
 def serve_audio(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    """Serve audio files with ownership verification to prevent IDOR attacks."""
+    try:
+        # Query database to find the image record associated with this audio file
+        image = get_image_by_audio_filename(filename)
+        
+        # If no record found, the audio file doesn't exist or isn't associated with any upload
+        if not image:
+            return jsonify({"error": "Audio file not found"}), 404
+        
+        # Get current user info from the JWT token (set by @require_auth decorator)
+        current_user_id = request.current_user.get("id")
+        current_user_role = request.current_user.get("role", "user")
+        image_owner_id = image.get("user_id")
+        
+        # Allow access if user is admin OR owns the audio file
+        is_admin = current_user_role == "admin"
+        is_owner = check_owner(current_user_id, image_owner_id)
+        
+        if not (is_admin or is_owner):
+            return jsonify({"error": "Unauthorized: You do not have permission to access this audio file"}), 403
+        
+        # User is authorized (either admin or owner), serve the file
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+        
+    except Exception as e:
+        logging.error(f"Error serving audio file '{filename}': {str(e)}")
+        return jsonify({"error": "Failed to serve audio file"}), 500
 
 
 # Delete images uploaded by the user

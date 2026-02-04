@@ -250,6 +250,10 @@ def google_auth():
         if not email:
             return jsonify({"error": "Email not present in token"}), 400
 
+        if not idinfo.get("email_verified"):
+            return jsonify({"error": "Email not verified"}), 403
+
+
     except ValueError as e:
         current_app.logger.exception("Invalid Google ID token: %s", e)
         return jsonify({"error": "Invalid id_token"}), 401
