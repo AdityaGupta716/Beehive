@@ -262,6 +262,12 @@ def get_image_by_id(image_id):
     image = beehive_image_collection.find_one({'_id': image_id})
     return image
 
+# Get image by audio filename from MongoDB
+def get_image_by_audio_filename(audio_filename):
+    """Get image record by its audio filename for ownership verification."""
+    image = beehive_image_collection.find_one({'audio_filename': audio_filename})
+    return image
+
 # Get upload statistics for admin dashboard
 def get_upload_stats():
     """Get statistics for admin dashboard including total users, images, and voice notes."""
