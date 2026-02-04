@@ -130,8 +130,6 @@ def _get_paginated_images_by_user(user_id, page=1, page_size=12, filters=None):
             - 'to': custom end date (ISO string)
     """
     try:
-        from datetime import datetime, timedelta
-        
         skip = (page - 1) * page_size
         
         # Build query

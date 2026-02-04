@@ -195,13 +195,8 @@ const UserUploads = () => {
               <label className="text-sm text-gray-600 dark:text-gray-300">Items:</label>
               <select
                 value={pageSize}
-                onChange={async (e) => {
-                  const v = Number(e.target.value) || 12;
-                  setPageSize(v);
-                  setCurrentPage(1);
-                  // Wait for state update before fetching
-                  await new Promise(resolve => setTimeout(resolve, 0));
-                  fetchUploads(1, false);
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value) || 12);
                 }}
                 className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
               >
