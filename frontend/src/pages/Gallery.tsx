@@ -162,11 +162,12 @@ const Gallery = () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('page_size', String(pageSize));
-      if (searchQuery) params.set('q', searchQuery);
-      if (sentimentFilter) params.set('sentiment', sentimentFilter);
-      if (dateFilter) params.set('date_filter', dateFilter);
-      if (customDateFrom) params.set('from', customDateFrom);
-      if (customDateTo) params.set('to', customDateTo);
+      // TODO: Backend filtering support needed for search, sentiment, and date filters
+      // if (searchQuery) params.set('q', searchQuery);
+      // if (sentimentFilter) params.set('sentiment', sentimentFilter);
+      // if (dateFilter) params.set('date_filter', dateFilter);
+      // if (customDateFrom) params.set('from', customDateFrom);
+      // if (customDateTo) params.set('to', customDateTo);
 
       const data = await apiGet<{
         images: Upload[];

@@ -80,9 +80,9 @@ def get_currentuser_from_session():
 # Get all images from MongoDB
 def get_images_by_user(user_id, limit=None, offset=None):
     """
-    Return a list of images for a user.
-    If `limit` and `offset` are provided, apply pagination (skip/limit).
-    Keeps previous behavior when called without pagination args.
+    Return a list of images for a user, sorted by `created_at` in descending order.
+    If `offset` and/or `limit` are provided, apply pagination using skip/limit on that
+    sorted result set.
     """
     cursor = beehive_image_collection.find({'user_id': user_id}).sort('created_at', -1)
     if offset is not None:

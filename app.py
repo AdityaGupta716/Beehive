@@ -1,5 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv()
+
+# Validate configuration early - fail fast if config is missing or insecure
+# Skip validation in test mode to avoid breaking tests
+if not os.getenv('TESTING'):
+    from config import Config
+    Config.validate_config()
+
 import base64
 import binascii
 import datetime
@@ -76,9 +83,6 @@ CORS(
     },
 )
 from config import Config
-
-# Validate configuration on startup - fail fast if config is missing or insecure
-Config.validate_config()
 
 app.config.from_object(Config)
 
