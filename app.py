@@ -43,13 +43,13 @@ from pip._vendor import cachecontrol
 from werkzeug.utils import secure_filename
 from flask_mail import Mail, Message
 
-from database.databaseConfig import get_beehive_user_collection
 from database import userdatahandler
 from database.admindatahandler import is_admin
 from database.databaseConfig import (
     get_beehive_message_collection,
     get_beehive_notification_collection,
 )
+from database.databaseConfig import get_beehive_user_collection
 from database.userdatahandler import (
     delete_image,
     get_all_users,
@@ -825,9 +825,12 @@ def health_check():
     Health check endpoint for monitoring and API Gateway.
     Returns 200 if healthy, 503 if issues detected.
     """
+    # Fix: Capture timestamp once to ensure consistency (DRY)
+    current_time = datetime.datetime.now().isoformat()
+
     try:
         # Basic app health
-        health_status = {"status": "healthy", "timestamp": datetime.datetime.now().isoformat()}
+        health_status = {"status": "healthy", "timestamp": current_time}
         
         # Optional: Check MongoDB connection
         db_collection = get_beehive_user_collection()
@@ -837,11 +840,11 @@ def health_check():
         
         return jsonify(health_status), 200
     except Exception as e:
-        app_logger.error(f"Health check failed: {str(e)}")
+        app.logger.error(f"Health check failed: {str(e)}")
         return jsonify({
             "status": "unhealthy",
             "error": "Service Unavailable",
-            "timestamp": datetime.datetime.now().isoformat()
+            "timestamp": current_time  # Uses the same variable
         }), 503
     
 
