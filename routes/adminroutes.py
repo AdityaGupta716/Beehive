@@ -1,11 +1,10 @@
 from flask import Blueprint, request, jsonify
 import os
+import logging
 import requests
 from database.admindatahandler import is_admin
 from database.userdatahandler import get_images_by_user, get_recent_uploads, get_upload_stats
 from utils.clerk_auth import require_auth
-import logging
-
 # Create admin blueprint
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -19,8 +18,8 @@ def admin_user_images_show(user_id):
             'images': images
         })
     except Exception as e:
-                logging.error(f'Error in admin_user_images_show: {str(e)}', exc_info=True)
-        return jsonify({
+        logging.error('Error in admin_user_images_show for user_id %s', user_id, exc_info=True)
+        
             'error': str(e)
         }), 500
 
