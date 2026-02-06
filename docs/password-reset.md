@@ -39,7 +39,7 @@ Contains Flask blueprint with the following endpoints:
 Utility class for password reset operations:
 
 - `generate_reset_token()`: Creates URL-safe random token (32 bytes)
-- `send_reset_email()`: Sends HTML email with reset link using SMTP
+- `send_reset_email()`: Sends plain text email with reset link using SMTP
 
 ### Frontend Components
 
