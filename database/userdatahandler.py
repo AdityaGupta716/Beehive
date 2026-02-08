@@ -103,7 +103,7 @@ def get_images_by_user(user_id, limit=None, offset=None):
         'description': image.get('description', ''),
         'audio_filename': image.get('audio_filename', ""),
         'sentiment': image.get('sentiment', ""),
-        'created_at': image['created_at']['$date'] if isinstance(image.get('created_at'), dict) else image.get('created_at')
+        'created_at': image['created_at'].get('$date') if isinstance(image.get('created_at'), dict) else image.get('created_at')
     } for image in cursor]
 
 def count_images_by_user(user_id):
