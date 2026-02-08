@@ -1,7 +1,6 @@
-# BSON ObjectId import added
 from datetime import datetime, timedelta, timezone
 from bson.objectid import ObjectId
-# import re
+import re
 import bcrypt
 from flask import session
 from database import databaseConfig
