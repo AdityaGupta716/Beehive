@@ -62,6 +62,7 @@ from database.userdatahandler import (
     save_notification,
     update_image,
 )
+from utils.pagination import parse_pagination_params
 
 from utils.jwt_auth import require_auth,require_admin_role 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -709,17 +710,21 @@ def delete_image_route(image_id):
 def user_images_show():
     try:
         user_id = request.current_user["id"]
-        try:
-            page = int(request.args.get('page', 1))
-            page_size = int(request.args.get('page_size', 12))
-        except ValueError:
-            return jsonify({"error":"Invalid page or page size (must be an integer)"})
+        page, page_size = parse_pagination_params(default_page=1, default_size=12, max_size=50)
         
-        # Validate pagination parameters
-        page = max(1, page)
-        page_size = min(max(1, page_size), 50)  # Max 50 images per page
+        # Extract filter parameters from query string
+        filters = {
+            'q': request.args.get('q'),
+            'sentiment': request.args.get('sentiment'),
+            'date_filter': request.args.get('date_filter'),
+            'from': request.args.get('from'),
+            'to': request.args.get('to')
+        }
         
-        result = _get_paginated_images_by_user(user_id, page, page_size)
+        # Remove None values
+        filters = {k: v for k, v in filters.items() if v is not None}
+        
+        result = _get_paginated_images_by_user(user_id, page, page_size, filters if filters else None)
         
         response_data = {
             "images": result['images'],

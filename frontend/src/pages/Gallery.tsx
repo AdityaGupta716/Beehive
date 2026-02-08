@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { apiUrl } from '../utils/api';
-import { getToken } from '../utils/auth';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useUser, useClerk } from '@clerk/clerk-react';
+import { apiUrl, apiGet, apiPatch, apiDelete, apiGetBlob, type GetTokenFn } from '../utils/api';
 import {
   PencilIcon,
   TrashIcon,
@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmptyGalleryIcon } from '../components/ui/EmptyGalleryIcon';
+import Pagination from '../components/ui/Pagination';
 
 interface Upload {
   id: string;
@@ -126,9 +127,9 @@ const Gallery = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [pageSize] = useState(9);
-  const observerTarget = useRef<HTMLDivElement>(null);
-
+  const [pageSize, setPageSize] = useState(20);
+  
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -167,42 +168,23 @@ const Gallery = () => {
       } else {
         setLoadingMore(true);
       }
+      
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('page_size', String(pageSize));
+      if (searchQuery) params.set('q', searchQuery);
+      if (sentimentFilter) params.set('sentiment', sentimentFilter);
+      if (dateFilter) params.set('date_filter', dateFilter);
+      if (customDateFrom) params.set('from', customDateFrom);
+      if (customDateTo) params.set('to', customDateTo);
 
-      const handleError = (message: string) => {
-        console.error('Error fetching uploads:', message);
-        if (page === 1) {
-          toast.error('Failed to fetch uploads');
-          setImages([]);
-        }
-      };
-
-      const response = await authenticatedFetch(`/api/user/user_uploads?page=${page}&page_size=${pageSize}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors'
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Unknown error';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          errorMessage = `HTTP error! status: ${response.status}`;
-        }
-        handleError(errorMessage);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        handleError(data.error);
-        return;
-      }
-
+      const data = await apiGet<{
+        images: Upload[];
+        totalPages: number;
+        total_count: number;
+        page: number;
+      }>(`/api/user/user_uploads?${params.toString()}`, getToken);
+      
       const sortedImages: Upload[] = (data.images || []).sort((a: Upload, b: Upload) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -228,45 +210,18 @@ const Gallery = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [authenticatedFetch, pageSize]);
+  }, [getToken, pageSize, searchQuery, sentimentFilter, dateFilter, customDateFrom, customDateTo]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchUploads(page, false);
+  };
 
   // Initial fetch
   useEffect(() => {
     setCurrentPage(1);
     fetchUploads(1, false);
   }, [fetchUploads]);
-
-  // Infinite scroll 
-  useEffect(() => {
-    if (viewMode === 'rolling') return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && !loadingMore && !loading && currentPage < totalPages) {
-          const nextPage = currentPage + 1;
-          console.log(`Loading page ${nextPage}...`);
-          fetchUploads(nextPage, true);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '1200px',
-        threshold: 0,
-      }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [currentPage, totalPages, loadingMore, loading, fetchUploads, viewMode]);
 
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
@@ -306,20 +261,29 @@ const Gallery = () => {
     }
 
     try {
-      const response = await authenticatedFetch(`/delete/${id}`, {
-        method: 'DELETE',
-      });
+      // Optimistically update UI for immediate feedback
+      const newImages = images.filter(img => img.id !== id);
+      setImages(newImages);
+      setTotalCount(prevCount => prevCount - 1);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete image');
+      // Perform the deletion
+      await apiDelete(`/delete/${id}`, getToken);
+
+      // If the last item on a page (other than the first) was deleted, go to the previous page
+      if (newImages.length === 0 && currentPage > 1) {
+        handlePageChange(currentPage - 1);
+      } else {
+        // Refetch the current page to pull a new item from the next page if available
+        // and to ensure pagination metadata is correct
+        fetchUploads(currentPage, false);
       }
 
-      setImages(images.filter(img => img.id !== id));
       toast.success('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete image');
+      // On error, refetch to restore correct state
+      fetchUploads(currentPage, false);
     }
   };
 
@@ -471,46 +435,9 @@ const Gallery = () => {
     }
   };
 
-  const filteredImages = useMemo((): Upload[] => {
-    const lowercasedQuery = searchQuery.toLowerCase();
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(today.getDate() - 7);
-    const monthAgo = new Date(today);
-    monthAgo.setDate(today.getDate() - 30);
-    const fromDate = customDateFrom ? new Date(customDateFrom) : null;
-    if (fromDate) fromDate.setHours(0, 0, 0, 0);
-    const toDate = customDateTo ? new Date(customDateTo) : null;
-    if (toDate) toDate.setHours(23, 59, 59, 999);
-
-    return images.filter((image) => {
-      const matchesSearch = lowercasedQuery === '' ||
-        image.title.toLowerCase().includes(lowercasedQuery) ||
-        image.description.toLowerCase().includes(lowercasedQuery);
-
-      const matchesSentiment = sentimentFilter === 'all' ||
-        (sentimentFilter === 'custom' && image.sentiment && !['positive', 'neutral', 'negative'].includes(image.sentiment.toLowerCase())) ||
-        (image.sentiment?.toLowerCase() === sentimentFilter.toLowerCase());
-
-      let matchesDate = true;
-      if (dateFilter !== 'all') {
-        const imageDate = new Date(image.created_at);
-        if (dateFilter === 'lastWeek') {
-          matchesDate = imageDate >= weekAgo;
-        } else if (dateFilter === 'lastMonth') {
-          matchesDate = imageDate >= monthAgo;
-        } else if (dateFilter === 'custom' && fromDate && toDate) {
-          matchesDate = imageDate >= fromDate && imageDate <= toDate;
-        } else {
-          matchesDate = false;
-        }
-      }
-
-      return matchesSearch && matchesSentiment && matchesDate;
-    });
-  }, [images, searchQuery, sentimentFilter, dateFilter, customDateFrom, customDateTo]);
+  // NOTE: Filtering should be handled server-side for paginated data.
+  // Filters are passed as query params in `fetchUploads`.
+  const filteredImages = images;
 
   const handleRollingNavigation = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -745,37 +672,57 @@ const Gallery = () => {
               )}
             </div>
 
-            <div className="flex rounded-lg bg-white dark:bg-gray-800 shadow-sm p-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md transition-colors duration-200 ${viewMode === 'grid'
-                  ? 'bg-yellow-400 text-black'
-                  : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+            <div className="flex items-center space-x-3">
+              <div className="flex rounded-lg bg-white dark:bg-gray-800 shadow-sm p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'grid'
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
                   }`}
-                title="Grid View"
-              >
-                <Squares2X2Icon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors duration-200 ${viewMode === 'list'
-                  ? 'bg-yellow-400 text-black'
-                  : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+                  title="Grid View"
+                >
+                  <Squares2X2Icon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'list'
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
                   }`}
-                title="List View"
-              >
-                <ListBulletIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('rolling')}
-                className={`p-2 rounded-md transition-colors duration-200 ${viewMode === 'rolling'
-                  ? 'bg-yellow-400 text-black'
-                  : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+                  title="List View"
+                >
+                  <ListBulletIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('rolling')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'rolling'
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
                   }`}
-                title="Rolling View"
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
+                  title="Rolling View"
+                >
+                  <ChevronRightIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600 dark:text-gray-300">Items:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value) || 10);
+                  }}
+                  className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1018,14 +965,8 @@ const Gallery = () => {
               )}
             </div>
 
-
-
-            {/* Infinite scroll observer target */}
-            <div
-              ref={observerTarget}
-              className="w-full h-4 mt-8"
-              aria-label="Infinite scroll trigger"
-            />
+    
+            <Pagination page={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
 
             {/* Loading indicator */}
             {loadingMore && (
