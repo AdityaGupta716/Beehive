@@ -49,6 +49,7 @@ from database.databaseConfig import (
     get_beehive_message_collection,
     get_beehive_notification_collection,
 )
+from database.databaseConfig import get_beehive_user_collection
 from database.userdatahandler import (
     delete_image,
     get_all_users,
@@ -863,6 +864,34 @@ def get_chat_messages():
         logging.error(f"Error fetching chat messages: {str(e)}")
         return jsonify({"error": "Failed to fetch messages. Please try again."}), 500
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for monitoring and API Gateway.
+    Returns 200 if healthy, 503 if issues detected.
+    """
+    # Fix: Capture timestamp once to ensure consistency (DRY)
+    current_time = datetime.datetime.now().isoformat()
+
+    try:
+        # Basic app health
+        health_status = {"status": "healthy", "timestamp": current_time}
+        
+        # Optional: Check MongoDB connection
+        db_collection = get_beehive_user_collection()
+        # Simple ping - will raise exception if DB unreachable
+        db_collection.database.command('ping')
+        health_status["database"] = "connected"
+        
+        return jsonify(health_status), 200
+    except Exception as e:
+        app.logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            "status": "unhealthy",
+            "error": "Service Unavailable",
+            "timestamp": current_time  # Uses the same variable
+        }), 503
+    
 
 # Import blueprints
 from routes.adminroutes import admin_bp
