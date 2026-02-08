@@ -195,7 +195,7 @@ def _get_paginated_images_by_user(user_id, page=1, page_size=12, filters=None):
             'description': image.get('description', ''),
             'audio_filename': image.get('audio_filename', ""),
             'sentiment': image.get('sentiment', ""),
-            'created_at': image['created_at'].get('$date') if isinstance(image.get('created_at'), dict) else image.get('created_at')
+            'created_at': image.get('created_at').get('$date') if isinstance(image.get('created_at'), dict) else image.get('created_at')
         } for image in images]
         
         return {
