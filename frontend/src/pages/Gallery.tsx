@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { apiUrl, apiGet, apiPatch, apiDelete, apiGetBlob, type GetTokenFn } from '../utils/api';
+import { apiUrl } from '../utils/api';
+import { getToken } from '../utils/auth';
 import {
   PencilIcon,
   TrashIcon,
