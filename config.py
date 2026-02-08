@@ -21,7 +21,7 @@ class Config:
     
     # CORS Configuration
     _cors_origins_env = os.getenv("CORS_ORIGINS")
-    CORS_ORIGINS = [origin.strip() for origin in _cors_origins_env.split(",") if origin.strip()] if _cors_origins_env else []
+    CORS_ORIGINS = [origin.strip() for origin in (_cors_origins_env or "").split(",") if origin.strip()]
     
     # List of insecure/default values that should not be used in production
     INSECURE_DEFAULTS = {
