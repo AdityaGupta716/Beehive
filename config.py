@@ -24,7 +24,7 @@ class Config:
     CORS_ORIGINS = [origin.strip() for origin in _cors_origins_env.split(",") if origin.strip()] if _cors_origins_env else []
     
     # List of insecure/default values that should not be used in production
-    INSECURE_DEFAULTS = [
+    INSECURE_DEFAULTS = {
         'beehive-secret-key',
         'dev-secret-change-this',
         'your_jwt_secret_here',
@@ -33,7 +33,7 @@ class Config:
         'your_jwt_secret_here_CHANGE_THIS',
         'change-me',
         'secret',
-    ]
+    }
     
     @staticmethod
     def validate_config():
