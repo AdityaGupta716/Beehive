@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
-import { apiUrl, apiGet, apiPatch, apiDelete, apiGetBlob, type GetTokenFn } from '../utils/api';
+import { apiUrl } from '../utils/api';
+import { getToken } from '../utils/auth';
 import {
   PencilIcon,
   TrashIcon,
@@ -178,13 +178,17 @@ const Gallery = () => {
       if (customDateFrom) params.set('from', customDateFrom);
       if (customDateTo) params.set('to', customDateTo);
 
-      const data = await apiGet<{
+      const response = await authenticatedFetch(`/api/user/user_uploads?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch uploads');
+      }
+      const data: {
         images: Upload[];
         totalPages: number;
         total_count: number;
         page: number;
-      }>(`/api/user/user_uploads?${params.toString()}`, getToken);
-      
+      } = await response.json();
+            
       const sortedImages: Upload[] = (data.images || []).sort((a: Upload, b: Upload) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -267,8 +271,17 @@ const Gallery = () => {
       setTotalCount(prevCount => prevCount - 1);
 
       // Perform the deletion
-      await apiDelete(`/delete/${id}`, getToken);
-
+      const response = await authenticatedFetch(`/delete/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        let errorMsg = 'Failed to delete image';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+          // Response was not JSON, stick with the default message.
+        }
+        throw new Error(errorMsg);
+      }
       // If the last item on a page (other than the first) was deleted, go to the previous page
       if (newImages.length === 0 && currentPage > 1) {
         handlePageChange(currentPage - 1);
