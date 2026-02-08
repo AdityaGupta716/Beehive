@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
 import { apiUrl, apiGet, apiPatch, apiDelete, apiGetBlob, type GetTokenFn } from '../utils/api';
 import {
   PencilIcon,
