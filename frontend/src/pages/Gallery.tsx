@@ -281,8 +281,7 @@ const Gallery = () => {
           // Response was not JSON, stick with the default message.
         }
         throw new Error(errorMsg);
-    }
-    
+      }
       // If the last item on a page (other than the first) was deleted, go to the previous page
       if (newImages.length === 0 && currentPage > 1) {
         handlePageChange(currentPage - 1);
