@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
+import os
 
 # Validate configuration early - fail fast if config is missing or insecure
 # Skip validation in test mode to avoid breaking tests
