@@ -92,7 +92,7 @@ const UserUploads = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [userId, pageSize]);
+  }, [userId, pageSize, token]);
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchUploads(page, false);
@@ -104,8 +104,7 @@ const UserUploads = () => {
       setCurrentPage(1);
       fetchUploads(1, false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, fetchUploads]);
 
   // Pagination is handled via explicit controls (no infinite scroll)
 
@@ -197,10 +196,7 @@ const UserUploads = () => {
               <select
                 value={pageSize}
                 onChange={(e) => {
-                  const v = Number(e.target.value) || 12;
-                  setPageSize(v);
-                  setCurrentPage(1);
-                  fetchUploads(1, false);
+                  setPageSize(Number(e.target.value) || 12);
                 }}
                 className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
               >
