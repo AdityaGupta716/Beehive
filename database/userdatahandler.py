@@ -139,7 +139,7 @@ def _get_paginated_images_by_user(user_id, page=1, page_size=12, filters=None):
         if filters:
             # Search query filter
             if filters.get('q'):
-                search_query = filters['q']
+                search_query = re.escape(filters['q'])
                 query['$or'] = [
                     {'title': {'$regex': search_query, '$options': 'i'}},
                     {'description': {'$regex': search_query, '$options': 'i'}}
