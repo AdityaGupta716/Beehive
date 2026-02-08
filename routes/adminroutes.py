@@ -22,7 +22,15 @@ from database.databaseConfig import beehive
 def admin_user_images_show(user_id):
     try:
         page, page_size = parse_pagination_params(default_page=1, default_size=12, max_size=50)
-        result = _get_paginated_images_by_user(user_id, page, page_size)
+        filters = {
+            'q': request.args.get('q'),
+            'sentiment': request.args.get('sentiment'),
+            'date_filter': request.args.get('date_filter'),
+            'from': request.args.get('from'),
+            'to': request.args.get('to')
+        }
+        filters = {k: v for k, v in filters.items() if v is not None}
+        result = _get_paginated_images_by_user(user_id, page, page_size, filters if filters else None)
         return jsonify(result), 200
 
     except Exception:
