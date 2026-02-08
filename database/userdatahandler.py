@@ -115,28 +115,19 @@ def count_images_by_user(user_id):
 
 # Get paginated images (method)
 def _get_paginated_images_by_user(user_id, page=1, page_size=12):
-    
+    """
+    Get paginated images for a user with safe data access.
+    Reuses get_images_by_user and count_images_by_user for consistency.
+    """
     try:
-        skip = (page - 1) * page_size
+        # Calculate offset for pagination
+        offset = (page - 1) * page_size
         
-        # total count 
-        total_count = beehive_image_collection.count_documents({'user_id': user_id})
+        # Get total count using the dedicated function
+        total_count = count_images_by_user(user_id)
         
-        # Get images
-        images = list(beehive_image_collection.find({'user_id': user_id})
-                      .sort('created_at', -1)
-                      .skip(skip)
-                      .limit(page_size))
-        
-        formatted_images = [{
-            'id': str(image['_id']),
-            'filename': image['filename'],
-            'title': image['title'],
-            'description': image['description'],
-            'audio_filename': image.get('audio_filename', ""),
-            'sentiment': image.get('sentiment', ""),
-            'created_at': image['created_at']['$date'] if isinstance(image.get('created_at'), dict) else image.get('created_at')
-        } for image in images]
+        # Get paginated images using the existing function with safe .get() access
+        formatted_images = get_images_by_user(user_id, limit=page_size, offset=offset)
         
         return {
             'images': formatted_images,

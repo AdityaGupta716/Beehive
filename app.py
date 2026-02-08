@@ -731,6 +731,9 @@ def user_images_show():
             "message": "Success",
         }
         return jsonify(response_data)
+    except ValueError as e:
+        logging.error(f"Invalid pagination parameters: {str(e)}")
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logging.error(f"Error fetching user uploads: {str(e)}")
         return jsonify({"error": "Failed to fetch uploads. Please try again."}), 500
