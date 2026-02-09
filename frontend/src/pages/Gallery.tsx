@@ -402,12 +402,16 @@ const Gallery = () => {
       const blob = await response.blob();
 
       if (controller.signal.aborted) {
-        URL.revokeObjectURL(URL.createObjectURL(blob));
         return;
       }
 
       const objectUrl = URL.createObjectURL(blob);
-      setCurrentAudioUrl(objectUrl);
+      setCurrentAudioUrl((prevUrl) => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return objectUrl;
+      });
       setAudioLoading(false);
 
       if (audioRef.current) {
