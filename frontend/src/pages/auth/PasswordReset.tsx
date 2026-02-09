@@ -130,9 +130,9 @@ const PasswordReset = () => {
 
             <p className="text-center text-sm text-gray-600">
               Remember your password?{' '}
-              <a href="/signin" className="text-indigo-600 hover:text-indigo-700">
+              <Link to="/signin" className="text-indigo-600 hover:text-indigo-700">
                 Sign In
-              </a>
+              </Link>
             </p>
           </form>
         )}
