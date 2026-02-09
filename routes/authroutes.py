@@ -118,7 +118,8 @@ def request_password_reset():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in request_password_reset: {e}") # Replace with proper logging
+        return jsonify({'error': 'An internal server error occurred'}), 500
 
 
 @auth_bp.route('/reset-password', methods=['POST'])
