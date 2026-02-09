@@ -172,7 +172,8 @@ def reset_password():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in reset_password: {e}") # Replace with proper logging
+        return jsonify({'error': 'An internal server error occurred'}), 500
 
 
 @auth_bp.route('/verify-reset-token', methods=['POST'])
