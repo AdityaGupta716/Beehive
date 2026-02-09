@@ -5,6 +5,7 @@ import secrets
 from datetime import datetime, timedelta
 from database.Database import Database
 from usersutils.hash_password import hash_password, check_password
+import hashlib
 import smtplib
 import hashlib
 from email.mime.text import MIMEText
