@@ -93,7 +93,8 @@ def request_password_reset():
         reset_expiry = datetime.utcnow() + timedelta(hours=1)
         
         # Store reset token in database
-            hashed_token = hashlib.sha256(reset_token.encode()).hexdigest()
+        # Store hashed reset token in database
+        hashed_token = hashlib.sha256(reset_token.encode()).hexdigest()
         user_collection.update_one(
             {'email': email},
             {'$set': {
