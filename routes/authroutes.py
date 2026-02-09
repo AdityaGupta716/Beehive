@@ -201,4 +201,5 @@ def verify_reset_token():
         return jsonify({'valid': True}), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in verify_reset_token: {e}") # Replace with proper logging
+        return jsonify({'error': 'An internal server error occurred'}), 500
