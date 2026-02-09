@@ -63,7 +63,8 @@ class PasswordResetManager:
             
             return True, "Reset email sent successfully"
         except Exception as e:
-            return False, str(e)
+            print(f"Error sending reset email: {e}") # Replace with proper logging
+            return False, "An error occurred while sending the email."
 
 
 @auth_bp.route('/request-password-reset', methods=['POST'])
