@@ -141,7 +141,8 @@ def reset_password():
             return jsonify({'error': 'Password must be at least 8 characters'}), 400
         
         # Find user by reset token
-            hashed_token = hashlib.sha256(reset_token.encode()).hexdigest()
+        # Find user by hashed reset token
+        hashed_token = hashlib.sha256(reset_token.encode()).hexdigest()
         user_collection = db.get_collection('users')
         user = user_collection.find_one({
             'password_reset_token': hashed_token,
