@@ -100,7 +100,7 @@ const SignUpPage = () => {
     try {
       const data = await apiFetch("/api/auth/set-password", {
         method: "POST",
-        body: JSON.stringify({ email, password, purpose: "reset" }),
+        body: JSON.stringify({ email, password, purpose: "signup" }),
       });
 
       saveToken(data.access_token);
