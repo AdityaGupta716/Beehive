@@ -123,11 +123,23 @@ const Landing = () => {
           }`}
         >
           <div className="flex items-center justify-between">
-            <motion.div
+            <motion.button
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
               className="flex items-center space-x-3"
+              onClick={() => {
+                if (isAuthenticated()) {
+                  if (isAdmin()) {
+                    navigate("/admin");
+                  } else {
+                    navigate("/dashboard");
+                  }
+                } else {
+                  navigate("/landing");
+                }
+              }}
+              aria-label="Beehive home"
             >
               <motion.img
                 src="/favicon.png"
@@ -145,7 +157,7 @@ const Landing = () => {
               >
                 Beehive
               </span>
-            </motion.div>
+            </motion.button>
 
             <div className="flex items-center space-x-8">
               <motion.div
