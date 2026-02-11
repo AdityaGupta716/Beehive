@@ -563,22 +563,22 @@ def generate_pdf_thumbnail(pdf_path, filename):
     thumbnails_dir = os.path.join(app.config["UPLOAD_FOLDER"], "thumbnails")
     os.makedirs(thumbnails_dir, exist_ok=True)
 
-    pdf_document = fitz.open(pdf_path)
+    with fitz.open(pdf_path) as pdf_document:
 
-    # select only the first page for the thumbnail
-    first_page = pdf_document.load_page(0)
+        # select only the first page for the thumbnail
+        first_page = pdf_document.load_page(0)
 
-    zoom = 2  # Increase for higher resolution
-    mat = fitz.Matrix(zoom, zoom)
-    pix = first_page.get_pixmap(matrix=mat)
+        zoom = 2  # Increase for higher resolution
+        mat = fitz.Matrix(zoom, zoom)
+        pix = first_page.get_pixmap(matrix=mat)
 
-    image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-    # Robust filename handling
-    name, _ = os.path.splitext(filename)
-    thumbnail_filename = f"{name}.jpg"
-    thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
-    image.save(thumbnail_path, "JPEG")
+        # Robust filename handling
+        name, _ = os.path.splitext(filename)
+        thumbnail_filename = f"{name}.jpg"
+        thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
+        image.save(thumbnail_path, "JPEG")
 
     return thumbnail_path
 
