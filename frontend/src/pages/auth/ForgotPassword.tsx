@@ -71,7 +71,7 @@ const ForgotPasswordPage = () => {
         }),
       });
 
-      navigate("/signin");
+      navigate("/sign-in");
     } catch (err: any) {
       setError(err.message || "Failed to reset password");
     } finally {
