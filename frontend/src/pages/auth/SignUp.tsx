@@ -24,7 +24,7 @@ const SignUpPage = () => {
     try {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
-        body: JSON.stringify({ email, purpose: "reset" }),
+        body: JSON.stringify({ email, purpose: "signup" }),
       });
 
       // if apiFetch didn't throw → success
