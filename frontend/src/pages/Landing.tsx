@@ -129,12 +129,10 @@ const Landing = () => {
               transition={{ duration: 0.5 }}
               className="flex items-center space-x-3"
               onClick={() => {
-                if (isAuthenticated()) {
-                  if (isAdmin()) {
-                    navigate("/admin");
-                  } else {
-                    navigate("/dashboard");
-                  }
+                if (isAdmin()) {
+                  navigate("/admin");
+                } else if (isAuthenticated()) {
+                  navigate("/dashboard");
                 } else {
                   navigate("/landing");
                 }
