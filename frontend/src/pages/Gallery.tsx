@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { apiUrl } from '../utils/api';
+import { getToken } from '../utils/auth';
 import {
   PencilIcon,
   TrashIcon,
@@ -13,7 +14,9 @@ import {
   ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { EmptyGalleryIcon } from '../components/ui/EmptyGalleryIcon';
+import Pagination from '../components/ui/Pagination';
 
 interface Upload {
   id: string;
@@ -43,11 +46,11 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full transition-colors duration-200">
         <form onSubmit={handleSubmit} className="p-6">
           <h2 className="text-2xl font-bold mb-4">Edit Image</h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block mb-2 font-medium">Title</label>
@@ -106,65 +109,139 @@ const EditModal = ({ image, onClose, onSave }: EditModalProps) => {
 };
 
 const Gallery = () => {
-  const { user } = useUser();
   const [images, setImages] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [editingImage, setEditingImage] = useState<Upload | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<string | null>(null);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'rolling'>('grid');
   const [gridSize, setGridSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showLayoutOptions, setShowLayoutOptions] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioAbortController = useRef<AbortController | null>(null);
   const [currentRollingIndex, setCurrentRollingIndex] = useState(0);
-  const rollingContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchUploads = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setLoading(true);
-        
-        // Get the authentication token from Clerk
-        const token = await window.Clerk.session?.getToken();
-        
-        const response = await fetch(`http://127.0.0.1:5000/api/user/user_uploads/${user.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
-          mode: 'cors'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        
-        const sortedImages: Upload[] = data.images.sort((a: Upload, b: Upload) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sentimentFilter, setSentimentFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
 
-        setImages(sortedImages);
-        console.log(sortedImages);
-      } catch (error) {
-        console.error('Error fetching uploads:', error);
-          toast.error('Failed to fetch uploads');
-      } finally {
-        setLoading(false);
-      }
+  // Function for authenticated API calls using JWT from localStorage
+  const authenticatedFetch = useCallback(async (path: string, options: RequestInit = {}) => {
+    const token = getToken() || '';
+    const headers = {
+      ...options.headers,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     };
+    return fetch(apiUrl(path), {
+      ...options,
+      headers,
+      credentials: 'include'
+    });
+  }, []);
 
-    fetchUploads();
-  }, [user?.id]);
+  // Clean up audio playback and revoke object URLs
+  const cleanupAudio = useCallback(() => {
+    if (audioAbortController.current) {
+      audioAbortController.current.abort();
+      audioAbortController.current = null;
+    }
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
+    }
+
+    setCurrentAudioUrl((prevUrl) => {
+      if (prevUrl) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return null;
+    });
+    
+    setCurrentAudio(null);
+    setAudioLoading(false);
+  }, []);
+
+  // Fetch uploads with pagination support
+  const fetchUploads = useCallback(async (page: number = 1, append: boolean = false) => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('page_size', String(pageSize));
+      if (searchQuery) params.set('q', searchQuery);
+      if (sentimentFilter) params.set('sentiment', sentimentFilter);
+      if (dateFilter) params.set('date_filter', dateFilter);
+      if (customDateFrom) params.set('from', customDateFrom);
+      if (customDateTo) params.set('to', customDateTo);
+
+      const response = await authenticatedFetch(`/api/user/user_uploads?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch uploads');
+      }
+      const data: {
+        images: Upload[];
+        totalPages: number;
+        total_count: number;
+        page: number;
+      } = await response.json();
+            
+      const sortedImages: Upload[] = (data.images || []).sort((a: Upload, b: Upload) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      if (append) {
+        setImages(prev => [...prev, ...sortedImages]);
+      } else {
+        setImages(sortedImages);
+      }
+
+      setTotalPages(data.totalPages || 1);
+      setTotalCount(data.total_count || 0);
+      setCurrentPage(data.page || 1);
+
+      console.log(`Loaded page ${page}/${data.totalPages}, ${sortedImages.length} images`);
+    } catch (error) {
+      console.error('Error fetching uploads:', error);
+      if (page === 1) {
+        toast.error('Failed to fetch uploads');
+        setImages([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [getToken, pageSize, searchQuery, sentimentFilter, dateFilter, customDateFrom, customDateTo]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchUploads(page, false);
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchUploads(1, false);
+  }, [fetchUploads]);
 
   const handleEdit = (image: Upload) => {
     setEditingImage(image);
@@ -177,16 +254,9 @@ const Gallery = () => {
       formData.append('description', description);
       formData.append('sentiment', sentiment);
 
-      // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
-
-      const response = await fetch(`http://127.0.0.1:5000/edit/${id}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await authenticatedFetch(`/edit/${id}`, {
+        method: 'PATCH',
         body: formData,
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -194,7 +264,7 @@ const Gallery = () => {
         throw new Error(data.error || 'Failed to update image');
       }
 
-      setImages(images.map(img => 
+      setImages(images.map(img =>
         img.id === id ? { ...img, title, description, sentiment } : img
       ));
 
@@ -211,27 +281,38 @@ const Gallery = () => {
     }
 
     try {
-      // Get the authentication token from Clerk
-      const token = await window.Clerk.session?.getToken();
+      // Optimistically update UI for immediate feedback
+      const newImages = images.filter(img => img.id !== id);
+      setImages(newImages);
+      setTotalCount(prevCount => prevCount - 1);
 
-      const response = await fetch(`http://127.0.0.1:5000/delete/${id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-      });
-
+      // Perform the deletion
+      const response = await authenticatedFetch(`/delete/${id}`, { method: 'DELETE' });
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete image');
+        let errorMsg = 'Failed to delete image';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+          // Response was not JSON, stick with the default message.
+        }
+        throw new Error(errorMsg);
+      }
+      // If the last item on a page (other than the first) was deleted, go to the previous page
+      if (newImages.length === 0 && currentPage > 1) {
+        handlePageChange(currentPage - 1);
+      } else {
+        // Refetch the current page to pull a new item from the next page if available
+        // and to ensure pagination metadata is correct
+        fetchUploads(currentPage, false);
       }
 
-      setImages(images.filter(img => img.id !== id));
       toast.success('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete image');
+      // On error, refetch to restore correct state
+      fetchUploads(currentPage, false);
     }
   };
 
@@ -246,33 +327,100 @@ const Gallery = () => {
   };
 
   const handleDownload = (filename: string) => {
-    const url = `http://127.0.0.1:5000/static/uploads/${filename}`;
+    const url = apiUrl(`/static/uploads/${filename}`);
     window.open(url, '_blank');
     toast.success('File opened in new window!');
   };
 
-  const handleAudioClick = (audioFilename: string) => {
+  const handleAudioClick = async (audioFilename: string) => {
     if (currentAudio === audioFilename) {
-      // If clicking the same audio, stop it
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+      cleanupAudio();
+      return;
+    }
+
+    if (audioAbortController.current) {
+      audioAbortController.current.abort();
+    }
+
+    const controller = new AbortController();
+    audioAbortController.current = controller;
+
+    setCurrentAudio(audioFilename);
+    setAudioLoading(true);
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    try {
+      const response = await authenticatedFetch(`/api/audio/${audioFilename}`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) {
+        return;
       }
-      setCurrentAudio(null);
-    } else {
-      // If clicking a different audio, stop current and play new
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+
+      if (!response.ok) {
+        let errorMsg = `Audio load failed (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch {
+          errorMsg = 'Failed to load audio file';
+        }
+        toast.error(errorMsg);
+        cleanupAudio();
+        return;
       }
-      setCurrentAudio(audioFilename);
+
+      const blob = await response.blob();
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      setCurrentAudioUrl((prevUrl) => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return objectUrl;
+      });
+      setAudioLoading(false);
+
+      if (audioRef.current) {
+        audioRef.current.src = objectUrl;
+        audioRef.current.play().catch((error) => {
+          if (!controller.signal.aborted) {
+            console.error('Error playing audio:', error);
+            toast.error('Error playing audio');
+            cleanupAudio();
+          }
+        });
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      console.error('Error fetching audio:', error);
+      toast.error('Unable to load audio');
+      cleanupAudio();
     }
   };
+
+  useEffect(() => {
+    return () => {
+      cleanupAudio();
+    };
+  }, [cleanupAudio]);
 
   const renderFilePreview = () => {
     if (!selectedFile) return null;
 
-    const fileUrl = `http://127.0.0.1:5000/static/uploads/${selectedFile}`;
+    const fileUrl = apiUrl(`/static/uploads/${selectedFile}`);
     const isPDF = selectedFile.toLowerCase().endsWith('.pdf');
 
     if (isPDF) {
@@ -297,15 +445,15 @@ const Gallery = () => {
   const getThumbnailUrl = (filename: string) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
       // For PDFs, use the thumbnail
-      return `http://127.0.0.1:5000/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`;
+      return apiUrl(`/static/uploads/thumbnails/${filename.replace('.pdf', '.jpg')}`);
     }
     // For images, use the original file
-    return `http://127.0.0.1:5000/static/uploads/${filename}`;
+    return apiUrl(`/static/uploads/${filename}`);
   };
 
   const getSentimentColor = (sentiment?: string) => {
     if (!sentiment) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-    
+
     switch (sentiment.toLowerCase()) {
       case 'positive':
         return 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100';
@@ -331,26 +479,26 @@ const Gallery = () => {
     }
   };
 
-  const getCardSize = () => {
-    switch (gridSize) {
-      case 'small':
-        return 'h-40';
-      case 'medium':
-        return 'h-48';
-      case 'large':
-        return 'h-64';
-      default:
-        return 'h-48';
-    }
-  };
+  // NOTE: Filtering should be handled server-side for paginated data.
+  // Filters are passed as query params in `fetchUploads`.
+  const filteredImages = images;
 
   const handleRollingNavigation = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
-      setCurrentRollingIndex(prevIndex => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
+      setCurrentRollingIndex(prevIndex => (prevIndex === 0 ? filteredImages.length - 1 : prevIndex - 1));
     } else {
-      setCurrentRollingIndex(prevIndex => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
+      setCurrentRollingIndex(prevIndex => (prevIndex === filteredImages.length - 1 ? 0 : prevIndex + 1));
     }
   };
+
+  useEffect(() => {
+    setCurrentRollingIndex(prevIndex => {
+      if (prevIndex >= filteredImages.length && filteredImages.length > 0) {
+        return 0;
+      }
+      return prevIndex;
+    });
+  }, [filteredImages.length]);
 
   const renderRollingView = () => {
     return (
@@ -381,134 +529,135 @@ const Gallery = () => {
           </motion.button>
         </div>
 
-        {/* Image Counter */}
         <div className="absolute top-4 right-4 z-10">
           <div className="px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm text-white text-sm font-medium">
-            {currentRollingIndex + 1} / {images.length}
+            {filteredImages.length > 0 ? currentRollingIndex + 1 : 0} / {filteredImages.length}
           </div>
         </div>
+        {filteredImages.length === 0 ? (
+          <div className="flex items-center justify-center h-[75vh]">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
+          </div>
+        ) : (
+          <div className="relative h-[75vh] w-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentRollingIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <div className="relative w-full h-full max-w-5xl mx-auto">
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl">
+                    <img
+                      src={getThumbnailUrl(filteredImages[currentRollingIndex].filename)}
+                      alt={filteredImages[currentRollingIndex].title}
+                      className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
+                    />
 
-        {/* Main Image Display */}
-        <div className="relative h-[75vh] w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentRollingIndex}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <div className="relative w-full h-full max-w-5xl mx-auto">
-                <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl">
-                  <img
-                    src={getThumbnailUrl(images[currentRollingIndex].filename)}
-                    alt={images[currentRollingIndex].title}
-                    className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
-                  />
-                  
-                  {/* Enhanced Overlay */}
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-8"
-                  >
-                    <div className="max-w-3xl mx-auto">
-                      <motion.h3 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="text-3xl font-bold text-white mb-3"
-                      >
-                        {images[currentRollingIndex].title}
-                      </motion.h3>
-                      <motion.p 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="text-gray-200 text-lg mb-6"
-                      >
-                        {images[currentRollingIndex].description}
-                      </motion.p>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          {images[currentRollingIndex].sentiment && (
-                            <motion.span
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.5 }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium ${getSentimentColor(images[currentRollingIndex].sentiment)}`}
+                    {/* Enhanced Overlay */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-8"
+                    >
+                      <div className="max-w-3xl mx-auto">
+                        <motion.h3
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="text-3xl font-bold text-white mb-3"
+                        >
+                          {filteredImages[currentRollingIndex].title}
+                        </motion.h3>
+                        <motion.p
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 }}
+                          className="text-gray-200 text-lg mb-6"
+                        >
+                          {filteredImages[currentRollingIndex].description}
+                        </motion.p>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            {filteredImages[currentRollingIndex].sentiment && (
+                              <motion.span
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.5 }}
+                                className={`px-4 py-2 rounded-full text-sm font-medium ${getSentimentColor(filteredImages[currentRollingIndex].sentiment)}`}
+                              >
+                                {filteredImages[currentRollingIndex].sentiment}
+                              </motion.span>
+                            )}
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 0.6 }}
+                              className="text-sm text-gray-300"
                             >
-                              {images[currentRollingIndex].sentiment}
-                            </motion.span>
-                          )}
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6 }}
-                            className="text-sm text-gray-300"
-                          >
-                            Uploaded: {new Date(images[currentRollingIndex].created_at).toLocaleDateString()}
-                          </motion.div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3">
-                          <motion.button
-                            onClick={() => handleEdit(images[currentRollingIndex])}
-                            className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                            <span className="absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                              Edit
-                            </span>
-                          </motion.button>
-                          <motion.button
-                            onClick={() => handleDelete(images[currentRollingIndex].id)}
-                            className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                            <span className="absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                              Delete
-                            </span>
-                          </motion.button>
-                          <motion.button
-                            onClick={() => handleDownload(images[currentRollingIndex].filename)}
-                            className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <ArrowDownTrayIcon className="h-5 w-5" />
-                            <span className="absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                              Download
-                            </span>
-                          </motion.button>
+                              Uploaded: {new Date(filteredImages[currentRollingIndex].created_at).toLocaleDateString()}
+                            </motion.div>
+                          </div>
+
+                          <div className="flex items-center space-x-3">
+                            <motion.button
+                              onClick={() => handleEdit(filteredImages[currentRollingIndex])}
+                              className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <PencilIcon className="h-5 w-5" />
+                              <span className="absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Edit
+                              </span>
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDelete(filteredImages[currentRollingIndex].id)}
+                              className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                              <span className="absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Delete
+                              </span>
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDownload(filteredImages[currentRollingIndex].filename)}
+                              className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all duration-200 group"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <ArrowDownTrayIcon className="h-5 w-5" />
+                              <span className="absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Download
+                              </span>
+                            </motion.button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
 
-        {/* Enhanced Dot Navigation */}
         <div className="mt-6 mb-6 flex justify-center space-x-3">
-          {images.map((_, index) => (
+          {filteredImages.map((_, index) => (
             <motion.button
               key={index}
               onClick={() => setCurrentRollingIndex(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                index === currentRollingIndex
-                  ? 'bg-yellow-400 scale-125'
-                  : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
-              }`}
+              className={`w-3 h-3 rounded-full transition-all duration-200 ${index === currentRollingIndex
+                ? 'bg-yellow-400 scale-125'
+                : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                }`}
               whileHover={{ scale: 1.2 }}
               whileTap={{ scale: 0.9 }}
             />
@@ -522,8 +671,15 @@ const Gallery = () => {
     <div className="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Gallery</h1>
-          
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Gallery</h1>
+            {totalCount > 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Showing {images.length} of {totalCount} images
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center space-x-4">
             <div className="relative">
               <button
@@ -533,7 +689,7 @@ const Gallery = () => {
               >
                 <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </button>
-              
+
               {showLayoutOptions && (
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-10">
                   <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
@@ -547,11 +703,10 @@ const Gallery = () => {
                           setGridSize(size as 'small' | 'medium' | 'large');
                           setShowLayoutOptions(false);
                         }}
-                        className={`w-full text-left px-2 py-1 rounded-md text-sm ${
-                          gridSize === size
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
+                        className={`w-full text-left px-2 py-1 rounded-md text-sm ${gridSize === size
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
                       >
                         {size.charAt(0).toUpperCase() + size.slice(1)}
                       </button>
@@ -561,187 +716,323 @@ const Gallery = () => {
               )}
             </div>
 
-            <div className="flex rounded-lg bg-white dark:bg-gray-800 shadow-sm p-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md transition-colors duration-200 ${
-                  viewMode === 'grid'
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
-                }`}
-                title="Grid View"
-              >
-                <Squares2X2Icon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors duration-200 ${
-                  viewMode === 'list'
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
-                }`}
-                title="List View"
-              >
-                <ListBulletIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('rolling')}
-                className={`p-2 rounded-md transition-colors duration-200 ${
-                  viewMode === 'rolling'
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
-                }`}
-                title="Rolling View"
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
+            <div className="flex items-center space-x-3">
+              <div className="flex rounded-lg bg-white dark:bg-gray-800 shadow-sm p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'grid'
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+                  }`}
+                  title="Grid View"
+                >
+                  <Squares2X2Icon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'list'
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+                  }`}
+                  title="List View"
+                >
+                  <ListBulletIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('rolling')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'rolling'
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+                  }`}
+                  title="Rolling View"
+                >
+                  <ChevronRightIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600 dark:text-gray-300">Items:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value) || 10);
+                  }}
+                  className="px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-sm"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        {loading ? (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 transition-colors duration-200">
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="lg:col-span-2">
+                <label className="block mb-2 font-medium">
+                  Search
+                </label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by title or description..."
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium">
+                  Sentiment
+                </label>
+                <select
+                  value={sentimentFilter}
+                  onChange={(e) => setSentimentFilter(e.target.value)}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                >
+                  <option value="all">All</option>
+                  <option value="positive">Positive</option>
+                  <option value="neutral">Neutral</option>
+                  <option value="negative">Negative</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium">
+                  Date Range
+                </label>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    if (e.target.value !== 'custom') {
+                      setCustomDateFrom('');
+                      setCustomDateTo('');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200 mb-2"
+                >
+                  <option value="all">All Time</option>
+                  <option value="lastWeek">Last Week</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                {dateFilter === 'custom' && (
+                  <div className="space-y-2 mt-2">
+                    <input
+                      type="date"
+                      value={customDateFrom}
+                      onChange={(e) => setCustomDateFrom(e.target.value)}
+                      className="w-full px-4 py-2 bg-white text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                    />
+                    <input
+                      type="date"
+                      value={customDateTo}
+                      onChange={(e) => setCustomDateTo(e.target.value)}
+                      className="w-full px-4 py-2 bg-white text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {loading && currentPage === 1 ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
           </div>
         ) : viewMode === 'rolling' ? (
           renderRollingView()
         ) : (
-          <div className={viewMode === 'grid' ? `grid gap-6 ${getGridCols()}` : 'space-y-4'}>
-            {images.map((image, index) => (
-              <motion.div
-                key={image.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.3,
-                  delay: index * 0.1,
-                  ease: "easeOut"
-                }}
-                whileHover={{ scale: 1.02 }}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${
-                  viewMode === 'list' ? 'flex items-center' : ''
-                }`}
-              >
-                <motion.div
-                  className={`relative cursor-pointer group ${
-                    viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'w-full'
-                  }`}
-                  onClick={() => handleFileClick(image.filename)}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <img
-                    src={getThumbnailUrl(image.filename)}
-                    alt={image.title}
-                    className={`w-full h-full object-cover transition-transform duration-200`}
-                  />
-                  {image.sentiment && (
-                    <motion.span
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${getSentimentColor(image.sentiment)}`}
-                    >
-                      {image.sentiment}
-                    </motion.span>
-                  )}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200" />
-                </motion.div>
-
-                <div className={`p-4 ${viewMode === 'list' ? 'flex-grow flex flex-col justify-between min-w-0' : ''}`}>
-                  <div className="flex-grow">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <motion.h3 
-                          className="text-lg font-semibold mb-1 text-gray-900 dark:text-white truncate"
-                          whileHover={{ x: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          {image.title}
-                        </motion.h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                          {image.description}
-                        </p>
-                        {viewMode === 'list' && (
-                          <motion.div 
-                            className="text-xs text-gray-500 dark:text-gray-400 mt-1"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                          >
-                            Uploaded: {new Date(image.created_at).toLocaleDateString()}
-                          </motion.div>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        <motion.button
-                          onClick={() => handleEdit(image)}
-                          className="p-1.5 text-gray-600 hover:text-yellow-400 dark:text-gray-400 transition-colors duration-200"
-                          title="Edit"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => handleDelete(image.id)}
-                          className="p-1.5 text-gray-600 hover:text-red-500 dark:text-gray-400 transition-colors duration-200"
-                          title="Delete"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => handleDownload(image.filename)}
-                          className="p-1.5 text-gray-600 hover:text-yellow-400 dark:text-gray-400 transition-colors duration-200"
-                          title="Download"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <ArrowDownTrayIcon className="h-4 w-4" />
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {image.audio_filename && (
-                    <motion.div 
-                      className="flex items-center space-x-2 mt-2"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                    >
-                      <motion.button
-                        onClick={() => handleAudioClick(image.audio_filename!)}
-                        className={`p-1.5 rounded-full transition-colors duration-200 ${
-                          currentAudio === image.audio_filename
-                            ? 'bg-yellow-400 text-black'
-                            : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
-                        }`}
-                        title="Play Voice Note"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <SpeakerWaveIcon className="h-4 w-4" />
-                      </motion.button>
-                      {currentAudio === image.audio_filename && (
-                        <motion.audio
-                          ref={audioRef}
-                          src={`http://127.0.0.1:5000/audio/${image.audio_filename}`}
-                          controls
-                          className="h-6"
-                          onEnded={() => setCurrentAudio(null)}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.2 }}
-                        />
-                      )}
-                    </motion.div>
+          <>
+            <div className={viewMode === 'grid' ? `grid gap-6 ${getGridCols()}` : 'space-y-4'}>
+              {filteredImages.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center h-64 text-center">
+                  <EmptyGalleryIcon />
+                  {images.length === 0 ? (
+                    <>
+                      <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No uploads yet</h3>
+                      <p className="text-gray-500 dark:text-gray-400">Start by uploading your first image or document</p>
+                    </>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">No images match your filters</p>
                   )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              ) : (
+                filteredImages.map((image, index) => (
+                  <motion.div
+                    key={image.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.3,
+                      delay: index * 0.1,
+                      ease: "easeOut"
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${viewMode === 'list' ? 'flex items-center' : ''
+                      }`}
+                  >
+                    <motion.div
+                      className={`relative cursor-pointer group ${viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'w-full aspect-[4/3]'
+                        }`}
+                      onClick={() => handleFileClick(image.filename)}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <img
+                        src={getThumbnailUrl(image.filename)}
+                        alt={image.title}
+                        className={`w-full h-full object-cover transition-transform duration-200`}
+                      />
+                      {image.sentiment && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${getSentimentColor(image.sentiment)}`}
+                        >
+                          {image.sentiment}
+                        </motion.span>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-opacity duration-200" />
+                    </motion.div>
+
+                    <div className={`p-4 ${viewMode === 'list' ? 'flex-grow flex flex-col justify-between min-w-0' : ''}`}>
+                      <div className="flex-grow">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <motion.h3
+                              className="text-lg font-semibold mb-1 text-gray-900 dark:text-white truncate"
+                              whileHover={{ x: 5 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              {image.title}
+                            </motion.h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                              {image.description}
+                            </p>
+                            {viewMode === 'list' && (
+                              <motion.div
+                                className="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                              >
+                                Uploaded: {new Date(image.created_at).toLocaleDateString()}
+                              </motion.div>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <motion.button
+                              onClick={() => handleEdit(image)}
+                              className="p-1.5 text-gray-600 hover:text-yellow-400 dark:text-gray-400 transition-colors duration-200"
+                              title="Edit"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDelete(image.id)}
+                              className="p-1.5 text-gray-600 hover:text-red-500 dark:text-gray-400 transition-colors duration-200"
+                              title="Delete"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDownload(image.filename)}
+                              className="p-1.5 text-gray-600 hover:text-yellow-400 dark:text-gray-400 transition-colors duration-200"
+                              title="Download"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <ArrowDownTrayIcon className="h-4 w-4" />
+                            </motion.button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {image.audio_filename && (
+                        <motion.div
+                          className="flex items-center space-x-2 mt-2"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          <motion.button
+                            onClick={() => handleAudioClick(image.audio_filename!)}
+                            disabled={audioLoading && currentAudio !== image.audio_filename}
+                            className={`p-1.5 rounded-full transition-colors duration-200 ${
+                              currentAudio === image.audio_filename
+                                ? 'bg-yellow-400 text-black'
+                                : audioLoading
+                                ? 'text-gray-400 cursor-not-allowed dark:text-gray-600'
+                                : 'text-gray-600 hover:text-yellow-400 dark:text-gray-400'
+                            }`}
+                            title="Play Voice Note"
+                            whileHover={{ scale: audioLoading ? 1 : 1.1 }}
+                            whileTap={{ scale: audioLoading ? 1 : 0.95 }}
+                          >
+                            {audioLoading && currentAudio === image.audio_filename ? (
+                              <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <SpeakerWaveIcon className="h-4 w-4" />
+                            )}
+                          </motion.button>
+                          {currentAudio === image.audio_filename && currentAudioUrl && !audioLoading && (
+                            <motion.audio
+                              ref={audioRef}
+                              src={currentAudioUrl}
+                              controls
+                              className="h-6"
+                              onEnded={() => cleanupAudio()}
+                              onError={(e) => {
+                                console.error('Audio playback error:', e);
+                                toast.error('Error playing audio');
+                                cleanupAudio();
+                              }}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                          )}
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+
+    
+            <Pagination page={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+
+            {/* Loading indicator */}
+            {loadingMore && (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
+              </div>
+            )}
+
+            {/* End of page indicator */}
+            {currentPage >= totalPages && images.length > 0 && (
+              <div className="flex justify-center py-8">
+                <p className="text-gray-500 dark:text-gray-400 text-center">
+                  You've viewed all {totalCount} images
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {editingImage && (
