@@ -27,8 +27,8 @@ const ForgotPasswordPage = () => {
       });
 
       setStep("otp");
-    } catch (err: any) {
-      setError(err.message || "Failed to send OTP");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send OTP");
     } finally {
       setLoading(false);
     }
